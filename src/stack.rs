@@ -3,8 +3,23 @@ pub struct Node<T> {
     next: Option<Box<Node<T>>>,
 }
 
+impl<T: Clone> Clone for Node<T> {
+    fn clone(&self) -> Self {
+        Node {
+            val: self.val.clone(),
+            next: self.next.clone()
+        }
+    }
+}
+
 pub struct Stack<T> {
     s: Option<Box<Node<T>>>
+}
+
+impl<T: Clone> Clone for Stack<T> {
+    fn clone(&self) -> Self {
+        Stack { s: self.s.clone() }
+    }
 }
 
 impl<T> Stack<T> {
@@ -76,6 +91,45 @@ impl<T> IntoIterator for Stack<T> {
     }
 }
 
+pub struct Iter<'a, T> where T: 'a {
+    node: Option<&'a Box<Node<T>>>
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<&'a T> {
+        let ret = self.node.map(|n| &n.val);
+        self.node = self.node.map(|n| n.next.as_ref()).unwrap_or(None);
+        ret
+    }
+
+    // Bad
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let mut sz = 0;
+        let mut p = self.node;
+        while p.is_some() {
+            p = p.map(|n| n.next.as_ref()).unwrap_or(None);
+            sz += 1;
+        }
+        (sz, Some(sz))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for Iter<'a, T> {
+    fn len(&self) -> usize {
+        self.size_hint().0
+    }
+}
+
+impl<T> Stack<T> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+        Iter {
+            node: self.s.as_ref()
+        }
+    }
+}
+
 #[test]
 fn test_stack() {
     let mut s = Stack::new();
@@ -109,4 +163,34 @@ fn test_stack_into_iter() {
     for i in s {
         assert_eq!(i, result.next().unwrap());
     }
+}
+
+
+#[test]
+fn test_stack_iter() {
+    let mut s = Stack::new();
+    s.push(100);
+    s.push(200);
+    s.push(300);
+
+    let mut result = vec![300, 200, 100].into_iter();
+    for i in s.iter() {
+        assert_eq!(*i, result.next().unwrap());
+    }
+
+    assert_eq!(s.len(), 3);
+}
+
+#[test]
+fn test_stack_clone() {
+    let mut s = Stack::new();
+    s.push(100);
+    s.push(200);
+    s.push(300);
+
+    let t = s.clone();
+
+    s.pop();
+    assert_eq!(s.len(), 2);
+    assert_eq!(t.len(), 3);
 }
