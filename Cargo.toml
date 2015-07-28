@@ -1,4 +1,12 @@
 [package]
 name = "adivon"
 version = "0.1.0"
-authors = ["andelf <andelf@gmail.com>"]
+authors = ["Shuyu Wang <andelf@gmail.com>"]
+description = "Adivon. A Joking Name."
+homepage = "https://github.com/andelf/rust-adivon"
+repository = "https://github.com/andelf/rust-adivon.git"
+keywords = [
+  "algorithm",
+  "book"
+]
+license = "MIT"
