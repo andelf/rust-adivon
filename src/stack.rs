@@ -23,7 +23,7 @@ impl<T> Stack<T> {
         top.map(|n| n.val)
     }
 
-    pub fn len(&mut self) -> usize {
+    pub fn len(&self) -> usize {
         let mut sz = 0;
         let mut p = self.s.as_ref();
         while p.is_some() {
@@ -43,6 +43,38 @@ impl<T> Stack<T> {
 }
 
 
+pub struct IntoIter<T> {
+    stack: Stack<T>
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        self.stack.pop()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.stack.len();
+        (len, Some(len))
+    }
+}
+
+impl<T> ExactSizeIterator for IntoIter<T> {
+    fn len(&self) -> usize {
+        self.stack.len()
+    }
+}
+
+
+impl<T> IntoIterator for Stack<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { stack: self }
+    }
+}
 
 #[test]
 fn test_stack() {
@@ -63,4 +95,18 @@ fn test_stack() {
     s.push(250);
     s.peek_mut().map(|val| *val = 100);
     assert_eq!(s.pop(), Some(100));
+}
+
+
+#[test]
+fn test_stack_into_iter() {
+    let mut s = Stack::new();
+    s.push(100);
+    s.push(200);
+    s.push(300);
+
+    let mut result = vec![300, 200, 100].into_iter();
+    for i in s {
+        assert_eq!(i, result.next().unwrap());
+    }
 }
