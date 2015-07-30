@@ -1,6 +1,8 @@
 use std::mem;
 use std::ptr;
 
+#[allow(raw_pointer_derive)]
+#[derive(Clone, Copy)]
 struct Rawlink<T> {
     p: *mut T
 }
@@ -35,9 +37,35 @@ impl<T> Node<T> {
     }
 }
 
+impl<T: Clone> Clone for Node<T> {
+    fn clone(&self) -> Self {
+        Node {
+            val: self.val.clone(),
+            next: self.next.clone()
+        }
+    }
+}
+
 pub struct Queue<T> {
     first: Option<Box<Node<T>>>,
     last: Rawlink<Node<T>>
+}
+
+impl<T: Clone> Clone for Queue<T> {
+    fn clone(&self) -> Self {
+        let mut first = self.first.clone();
+        let last = {
+            let mut p = first.as_mut();
+            while p.as_ref().map_or(false, |n| n.next.is_some()) {
+                p = p.unwrap().next.as_mut();
+            }
+            p.map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
+        };
+        Queue {
+            first: first,
+            last: last
+        }
+    }
 }
 
 impl<T> Queue<T> {
@@ -107,9 +135,27 @@ fn test_queue() {
     assert_eq!(queue.len(), 3);
 
     assert_eq!(queue.peek(), Some(&"welcome"));
-
     queue.peek_mut().map(|val| *val = "go");
-
     assert_eq!(queue.peek(), Some(&"go"));
+}
+
+#[test]
+fn test_queue_clone() {
+    let mut queue1 = Queue::<&str>::new();
+    queue1.enqueue("welcome");
+    queue1.enqueue("to");
+    queue1.enqueue("china");
+
+    let mut queue2 = queue1.clone();
+    queue2.dequeue();
+    assert_eq!(queue1.peek(), Some(&"welcome"));
+    assert_eq!(queue2.peek(), Some(&"to"));
+
+    queue2.dequeue();
+    queue2.dequeue();
+    queue2.enqueue("beijing");
+
+    assert_eq!(queue1.peek(), Some(&"welcome"));
+    assert_eq!(queue2.peek(), Some(&"beijing"));
 
 }

@@ -34,7 +34,7 @@ impl<T> Stack<T> {
 
     pub fn pop(&mut self) -> Option<T> {
         let mut top = self.s.take();
-        self.s = top.as_mut().map(|t| t.next.take()).unwrap_or(None);
+        self.s = top.as_mut().map_or(None, |t| t.next.take());
         top.map(|n| n.val)
     }
 
@@ -42,7 +42,7 @@ impl<T> Stack<T> {
         let mut sz = 0;
         let mut p = self.s.as_ref();
         while p.is_some() {
-            p = p.map(|n| n.next.as_ref()).unwrap_or(None);
+            p = p.map_or(None, |n| n.next.as_ref());
             sz += 1;
         }
         sz
@@ -100,7 +100,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     fn next(&mut self) -> Option<&'a T> {
         let ret = self.node.map(|n| &n.val);
-        self.node = self.node.map(|n| n.next.as_ref()).unwrap_or(None);
+        self.node = self.node.map_or(None, |n| n.next.as_ref());
         ret
     }
 
@@ -109,7 +109,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
         let mut sz = 0;
         let mut p = self.node;
         while p.is_some() {
-            p = p.map(|n| n.next.as_ref()).unwrap_or(None);
+            p = p.map_or(None, |n| n.next.as_ref());
             sz += 1;
         }
         (sz, Some(sz))
