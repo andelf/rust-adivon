@@ -20,21 +20,18 @@ impl<T> Rawlink<T> {
 }
 
 struct Node<T> {
-    item: T,
+    val: T,
     next: Option<Box<Node<T>>>
 }
 
 impl<T> Node<T> {
     /// work around for moved value
-    fn into_item_and_next(self) -> (T, Option<Box<Node<T>>>) {
-        (self.item, self.next)
+    fn into_val_and_next(self) -> (T, Option<Box<Node<T>>>) {
+        (self.val, self.next)
     }
 
-    fn size(&self) -> usize {
-        match self.next {
-            Some(ref n) => 1 + n.size(),
-            None        => 1
-        }
+    fn len(&self) -> usize {
+        self.next.as_ref().map_or(1, |n| 1 + n.len())
     }
 }
 
@@ -52,10 +49,10 @@ impl<T> Queue<T> {
         self.first.is_none()
     }
 
-    pub fn enqueue(&mut self, item: T) {
+    pub fn enqueue(&mut self, val: T) {
         let ref old_last = self.last.take();
         let mut last = Box::new(Node {
-            item: item,
+            val: val,
             next: None
         });
         self.last = Rawlink::some(&mut last);
@@ -68,40 +65,51 @@ impl<T> Queue<T> {
         }
     }
 
-    pub fn dequeue(&mut self) -> T {
+    pub fn dequeue(&mut self) -> Option<T> {
+        if self.first.is_none() {
+            return None;
+        }
         let old_first = self.first.take();
-        let (item, first) = old_first.unwrap().into_item_and_next();
+        let (val, first) = old_first.unwrap().into_val_and_next();
         self.first = first;
-        if self.is_empty() {
+        if self.first.is_none() {
             self.last = Rawlink::none()
         }
-        item
+        Some(val)
     }
 
-    pub fn size(&self) -> usize {
-        if self.is_empty() {
-            0
-        } else {
-            self.first.as_ref().unwrap().size()
-        }
+    pub fn peek(&self) -> Option<&T> {
+        self.first.as_ref().map(|n| &(*n).val)
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        self.first.as_mut().map(|n| &mut (*n).val)
+    }
+
+    pub fn len(&self) -> usize {
+        self.first.as_ref().map_or(0, |n| n.len())
     }
 }
 
 
 #[test]
-fn test_linked_queue() {
-    let mut queue = Queue::<String>::new();
-
+fn test_queue() {
+    let mut queue = Queue::<&str>::new();
     assert!(queue.is_empty());
-    let mut result = "to be or not to be".split(' ');
+    assert_eq!(queue.len(), 0);
 
-    for s in "to be or not to - be - - that - - - is".split(' ') {
-        if s == "-" {
-            assert_eq!(&queue.dequeue(), result.next().unwrap())
-        } else {
-            queue.enqueue(s.into())
-        }
-    }
+    assert_eq!(queue.peek(), None);
+
+    queue.enqueue("welcome");
+    queue.enqueue("to");
+    queue.enqueue("china");
     assert!(!queue.is_empty());
-    assert_eq!(2, queue.size());
+    assert_eq!(queue.len(), 3);
+
+    assert_eq!(queue.peek(), Some(&"welcome"));
+
+    queue.peek_mut().map(|val| *val = "go");
+
+    assert_eq!(queue.peek(), Some(&"go"));
+
 }
