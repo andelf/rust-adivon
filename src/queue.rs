@@ -119,6 +119,31 @@ impl<T> Queue<T> {
     }
 }
 
+pub struct IntoIter<T> {
+    queue: Queue<T>
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        self.queue.dequeue()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let length = self.queue.len();
+        (length, Some(length))
+    }
+}
+
+impl<T> IntoIterator for Queue<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { queue: self }
+    }
+}
 
 #[test]
 fn test_queue() {
@@ -158,4 +183,17 @@ fn test_queue_clone() {
     assert_eq!(queue1.peek(), Some(&"welcome"));
     assert_eq!(queue2.peek(), Some(&"beijing"));
 
+}
+
+#[test]
+fn test_queue_into_iter() {
+    let mut queue = Queue::<&str>::new();
+    queue.enqueue("welcome");
+    queue.enqueue("to");
+    queue.enqueue("china");
+
+    let result = vec!["welcome", "to", "china"];
+    for i in queue {
+        assert!(result.contains(&i));
+    }
 }
