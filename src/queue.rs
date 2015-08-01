@@ -1,8 +1,6 @@
 use std::mem;
 use std::ptr;
 
-#[allow(raw_pointer_derive)]
-#[derive(Clone, Copy)]
 struct Rawlink<T> {
     p: *mut T
 }
