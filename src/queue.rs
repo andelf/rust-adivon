@@ -145,6 +145,46 @@ impl<T> IntoIterator for Queue<T> {
     }
 }
 
+pub struct Iter<'a, T> where T: 'a {
+    node: Option<&'a Box<Node<T>>>
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<&'a T> {
+        let ret = self.node.map(|n| &n.val);
+        self.node = self.node.map_or(None, |n| n.next.as_ref());
+        ret
+    }
+
+    // Bad
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let mut sz = 0;
+        let mut p = self.node;
+        while p.is_some() {
+            p = p.map_or(None, |n| n.next.as_ref());
+            sz += 1;
+        }
+        (sz, Some(sz))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for Iter<'a, T> {
+    fn len(&self) -> usize {
+        self.size_hint().0
+    }
+}
+
+impl<T> Queue<T> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+        Iter {
+            node: self.first.as_ref()
+        }
+    }
+}
+
+
 #[test]
 fn test_queue() {
     let mut queue = Queue::<&str>::new();
@@ -196,4 +236,18 @@ fn test_queue_into_iter() {
     for i in queue {
         assert!(result.contains(&i));
     }
+}
+
+#[test]
+fn test_queue_iter() {
+    let mut queue = Queue::<&str>::new();
+    queue.enqueue("welcome");
+    queue.enqueue("to");
+    queue.enqueue("china");
+
+    let mut rit = vec!["welcome", "to", "china"].into_iter();
+    for i in queue.iter() {
+        assert_eq!(i, &rit.next().unwrap())
+    }
+
 }
