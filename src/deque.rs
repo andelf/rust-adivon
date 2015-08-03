@@ -57,15 +57,15 @@ impl<T> Deque<T> {
             last: Rawlink::none()
         }
     }
+
     pub fn is_empty(&self) -> bool {
         self.first.is_none()
     }
-    pub fn size(&self) -> usize {
-        match self.first {
-            None    => 0,
-            Some(ref l) => l.size()
-        }
+
+    pub fn len(&self) -> usize {
+        self.first.as_ref().map_or(0, |n| n.size())
     }
+
     pub fn add_first(&mut self, item: T) {
         let mut old_first = self.first.take();
         let mut first = Box::new(Node {
@@ -76,7 +76,6 @@ impl<T> Deque<T> {
 
         if old_first.is_some() {
             old_first.as_mut().unwrap().prev = Rawlink::some(&mut first);
-            // move in
             first.next = old_first;
         } else {
             self.last = Rawlink::some(&mut first);
@@ -143,7 +142,7 @@ impl<T> Deque<T> {
     pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         Iter {
             current: self.first.as_ref(),
-            nelem: self.size()
+            nelem: self.len()
         }
     }
 }
@@ -166,6 +165,44 @@ impl<T: fmt::Display> fmt::Display for Deque<T> {
             }
         }
         Ok(())
+    }
+}
+
+pub struct IntoIter<T> {
+    q: Deque<T>
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        self.q.remove_first()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.q.len();
+        (len, Some(len))
+    }
+}
+
+impl<T> ExactSizeIterator for IntoIter<T> {
+    fn len(&self) -> usize {
+        self.q.len()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.q.remove_last()
+    }
+}
+
+impl<T> IntoIterator for Deque<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { q: self }
     }
 }
 
@@ -194,12 +231,11 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl <'a, T> ExactSizeIterator for Iter<'a, T> {
+impl<'a, T> ExactSizeIterator for Iter<'a, T> {
     fn len(&self) -> usize {
         self.nelem
     }
 }
-
 
 #[test]
 fn test_linked_deque_add_remove() {
@@ -240,13 +276,13 @@ fn test_linked_deque_size() {
     // -2 remove first
     for s in vec![4, 2, 3, 0, -1, -2, 5, -1, -1, -2] {
         if s == -2 {
-            assert_eq!(deque.size(), *rit.next().unwrap());
+            assert_eq!(deque.len(), *rit.next().unwrap());
             deque.remove_first();
         } else if s == -1 {
-            assert_eq!(deque.size(), *rit.next().unwrap());
+            assert_eq!(deque.len(), *rit.next().unwrap());
             deque.remove_last();
         } else {
-            assert_eq!(deque.size(), *rit.next().unwrap());
+            assert_eq!(deque.len(), *rit.next().unwrap());
             deque.add_first(s);
         }
     }
@@ -275,4 +311,20 @@ fn test_linked_deque_iter() {
         n += 1;
     }
     assert_eq!(n, 10);
+}
+
+#[test]
+fn test_deque_into_iter() {
+    let mut deque: Deque<i32> = Deque::new();
+    deque.add_last(12);
+    deque.add_last(11);
+    deque.add_last(10);
+    deque.add_first(0);
+    deque.add_first(5);
+    deque.add_first(7);
+
+    let mut rit = vec![7, 5, 0, 12, 11, 10].into_iter();
+    for i in deque {
+        assert_eq!(i, rit.next().unwrap())
+    }
 }

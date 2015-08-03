@@ -81,7 +81,6 @@ impl<T> ExactSizeIterator for IntoIter<T> {
     }
 }
 
-
 impl<T> IntoIterator for Stack<T> {
     type Item = T;
     type IntoIter = IntoIter<T>;
