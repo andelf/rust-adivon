@@ -95,4 +95,7 @@ fn test_graph() {
     assert_eq!(9, g.edges());
     assert_eq!(3, g.degree(5));
 
+    for w in g.adj(5) {
+        assert!(vec![8, 4, 0].contains(w));
+    }
 }
