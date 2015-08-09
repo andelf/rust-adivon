@@ -136,6 +136,18 @@ impl<T> Deque<T> {
         Some(last.item)
     }
 
+    pub fn peek_first(&self) -> Option<&T> {
+        self.first.as_ref().map(|n| &n.item)
+    }
+
+    pub fn peek_last(&self) -> Option<&T> {
+        if self.last.p.is_null() {
+            None
+        } else {
+            let last_ref = unsafe { mem::transmute::<_, &mut Node<T>>(self.last.p) };
+            Some(&last_ref.item)
+        }
+    }
 }
 
 impl<T> Deque<T> {
@@ -327,4 +339,18 @@ fn test_deque_into_iter() {
     for i in deque {
         assert_eq!(i, rit.next().unwrap())
     }
+}
+
+#[test]
+fn test_deque_peek() {
+    let mut deque: Deque<i32> = Deque::new();
+    deque.add_last(12);
+    deque.add_last(10);
+
+    assert_eq!(deque.peek_last(), Some(&10));
+    assert_eq!(deque.peek_first(), Some(&12));
+    deque.add_last(11);
+    deque.add_first(34);
+    assert_eq!(deque.peek_last(), Some(&11));
+    assert_eq!(deque.peek_first(), Some(&34));
 }
