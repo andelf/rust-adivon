@@ -4,6 +4,4 @@
 
 ## What's this?
 
-:)
-
-占坑!
+代码来自 [andelf/rust-algs4](https://github.com/andelf/rust-algs4).
