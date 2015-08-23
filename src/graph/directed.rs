@@ -94,14 +94,14 @@ impl Digraph {
     }
 
     pub fn dfs<'a>(&'a self, s: usize) -> SearchPaths<'a> {
-        let mut path = SearchPaths::new(self, s);
-        path.dfs(s);
+        let mut path = SearchPaths::new(self, SearchSource::Single(s));
+        path.dfs();
         path
     }
 
     pub fn bfs<'a>(&'a self, s: usize) -> SearchPaths<'a> {
-        let mut path = SearchPaths::new(self, s);
-        path.bfs(s);
+        let mut path = SearchPaths::new(self, SearchSource::Single(s));
+        path.bfs();
         path
     }
 
@@ -116,39 +116,71 @@ impl Digraph {
     }
 }
 
+pub enum SearchSource {
+    Single(usize),
+    Multi(Vec<usize>)
+}
+
+impl SearchSource {
+    fn iter(&self) -> ::std::vec::IntoIter<usize> {
+        match *self {
+            SearchSource::Single(ref i) => vec![*i].into_iter(),
+            SearchSource::Multi(ref vs) => vs.clone().into_iter()
+        }
+    }
+
+    fn contains(&self, v: usize) -> bool {
+        match *self {
+            SearchSource::Single(ref i) => *i == v,
+            SearchSource::Multi(ref vs) => vs.contains(&v)
+        }
+    }
+}
+
 pub struct SearchPaths<'a> {
     graph: &'a Digraph,
     marked: Vec<bool>,
     edge_to: Vec<Option<usize>>,
-    s: usize
+    source: SearchSource
 }
 
 impl<'a> SearchPaths<'a> {
-    fn new<'b>(graph: &'b Digraph, s: usize) -> SearchPaths<'b> {
-        let marked = iter::repeat(false).take(graph.v()).collect();
+    fn new<'b>(graph: &'b Digraph, source: SearchSource) -> SearchPaths<'b> {
+        let mut marked = iter::repeat(false).take(graph.v()).collect::<Vec<bool>>();
         let edge_to = iter::repeat(None).take(graph.v()).collect();
+        for s in source.iter() {
+            marked[s] = true;
+        }
+
         SearchPaths {
             graph: graph,
             marked: marked,
             edge_to: edge_to,
-            s: s
+            source: source
         }
     }
 
-    fn dfs(&mut self, v: usize) {
+    fn dfs_from(&mut self, v: usize) {
         self.marked[v] = true;
         for w in self.graph.adj(v) {
             if !self.marked[w] {
-                self.dfs(w);
+                self.dfs_from(w);
                 self.edge_to[w] = Some(v);
             }
         }
     }
 
-    fn bfs(&mut self, s: usize) {
+    fn dfs(&mut self) {
+        for v in self.source.iter() {
+            self.dfs_from(v);
+        }
+    }
+
+    fn bfs(&mut self) {
         let mut q = Queue::new();
-        q.enqueue(s);
-        self.marked[s] = true;
+        for s in self.source.iter() {
+            q.enqueue(s);
+        }
         while !q.is_empty() {
             let v = q.dequeue().unwrap();
             for w in self.graph.adj(v) {
@@ -171,11 +203,11 @@ impl<'a> SearchPaths<'a> {
         } else {
             let mut path = Stack::new();
             let mut x = v;
-            while x != self.s {
+            while !self.source.contains(x) {
                 path.push(x);
                 x = self.edge_to[x].unwrap();
             }
-            path.push(self.s);
+            path.push(x);
             Some(path.into_iter().collect())
         }
     }
