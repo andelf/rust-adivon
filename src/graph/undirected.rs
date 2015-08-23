@@ -1,5 +1,6 @@
 use std::iter;
-use super::bag::Bag;
+use super::super::bag;
+use super::super::bag::Bag;
 
 #[derive(Clone, Debug)]
 pub struct Graph {
@@ -69,7 +70,7 @@ impl Graph {
         dot
     }
 
-    pub fn adj(&self, v: usize) -> super::bag::Iter<usize> {
+    pub fn adj(&self, v: usize) -> bag::Iter<usize> {
         self.adj[v].iter()
     }
 }
