@@ -13,3 +13,7 @@ pub mod graph;
 pub mod priority_queue;
 
 pub mod hashst;
+
+pub mod prelude;
+
+pub use prelude::*;
