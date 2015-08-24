@@ -99,6 +99,12 @@ impl Digraph {
         path
     }
 
+    pub fn dfs_multi_source<'a, T: IntoIterator<Item=usize>>(&'a self, s: T) -> SearchPaths<'a> {
+        let mut path = SearchPaths::new(self, SearchSource::Multi(s.into_iter().collect()));
+        path.dfs();
+        path
+    }
+
     pub fn bfs<'a>(&'a self, s: usize) -> SearchPaths<'a> {
         let mut path = SearchPaths::new(self, SearchSource::Single(s));
         path.bfs();
@@ -339,6 +345,10 @@ fn test_digraph_visit() {
     // println!("dot => \n {}", g.reverse().to_dot());
     assert_eq!(format!("{:?}", g.dfs(0).path_to(3).unwrap()), "[0, 5, 4, 2, 3]");
     assert_eq!(format!("{:?}", g.bfs(0).path_to(3).unwrap()), "[0, 5, 4, 3]");
+
+    // FIXME: bad test case
+    assert_eq!(format!("{:?}", g.dfs_multi_source(vec![0, 4]).path_to(3).unwrap()),
+               "[4, 2, 3]");
 
     let scc = g.kosaraju_sharir_scc();
 
