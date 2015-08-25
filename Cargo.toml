@@ -2,7 +2,7 @@
 name = "adivon"
 version = "0.2.2"
 authors = ["Shuyu Wang <andelf@gmail.com>"]
-description = "Adivon. A Joking Name."
+description = "Data Structures from the <<Algorithms, 4ed.>> book."
 homepage = "https://github.com/andelf/rust-adivon"
 repository = "https://github.com/andelf/rust-adivon.git"
 keywords = [
