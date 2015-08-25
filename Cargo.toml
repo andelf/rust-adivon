@@ -1,6 +1,6 @@
 [package]
 name = "adivon"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Shuyu Wang <andelf@gmail.com>"]
 description = "Adivon. A Joking Name."
 homepage = "https://github.com/andelf/rust-adivon"
