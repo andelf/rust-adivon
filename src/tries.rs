@@ -65,6 +65,23 @@ impl<K: PartialOrd + Copy , V> Node<V, K> {
         }
     }
 
+    fn get_mut<'a>(x: Option<&'a mut Box<Node<V, K>>>, key: &[K], d: usize) -> Option<&'a mut Box<Node<V, K>>> {
+        if x.is_none() {
+            return None;
+        }
+        let c = key[d];
+        let xc = x.as_ref().unwrap().c;
+        if c < xc {
+            Node::get_mut(x.unwrap().left.as_mut(), key, d)
+        } else if c > xc {
+            Node::get_mut(x.unwrap().right.as_mut(), key, d)
+        } else if d < key.len()-1 {
+            Node::get_mut(x.unwrap().mid.as_mut(), key, d+1)
+        } else {
+            x
+        }
+    }
+
     fn collect(x: Option<&Box<Node<V, K>>>, mut prefix: Vec<K>, queue: &mut Queue<Vec<K>>) {
         if x.is_none() {
             return;
@@ -129,6 +146,11 @@ impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K>  {
     pub fn get(&self, key: &[K]) -> Option<&V> {
         assert!(key.len() > 0, "key must have length >= 1");
         Node::get(self.root.as_ref(), key, 0).map_or(None, |n| n.val.as_ref())
+    }
+
+    pub fn get_mut(&mut self, key: &[K]) -> Option<&mut V> {
+        assert!(key.len() > 0, "key must have length >= 1");
+        Node::get_mut(self.root.as_mut(), key, 0).map_or(None, |n| n.val.as_mut())
     }
 
     pub fn delete(&mut self, key: &[K]) {
@@ -203,4 +225,7 @@ fn test_tst() {
     t.put(b"ban", "2333");
     t.put(b"banana", "2333");
     assert_eq!(t.longest_prefix_of(b"bananananana").unwrap(), b"banana");
+
+    t.get_mut(b"banana").map(|v| *v = "46666");
+    assert_eq!(t.get(b"banana").unwrap(), &"46666");
 }
