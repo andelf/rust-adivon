@@ -16,6 +16,8 @@ pub mod hashst;
 
 pub mod tries;
 
+pub mod suffix_tree;
+
 pub mod prelude;
 
 pub use prelude::*;
