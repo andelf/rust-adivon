@@ -7,7 +7,7 @@ use super::Queue;
 
 pub use self::Node::*;
 
-pub struct Rawlink<T> {
+struct Rawlink<T> {
     p: *mut T,
 }
 
@@ -52,7 +52,7 @@ impl<T> Rawlink<T> {
     }
 }
 // a node in SuffixTree
-pub enum Node<T> {
+enum Node<T> {
     Leaf { start: usize },
     Internal {
         start: usize,
@@ -136,14 +136,6 @@ impl<T: Ord + Copy> Node<T> {
         }
     }
 
-    pub fn head_with_offset(&self, seq: &[T], offset: usize) -> T {
-        match *self {
-            Internal { start, .. } => seq[start+offset],
-            Leaf { start } => seq[start+offset],
-            _ => panic!("root have no head")
-        }
-    }
-
     pub fn iter_children<'t>(&'t self) -> ::std::collections::btree_map::Values<'t, T, Node<T>> {
         match *self {
             Root { ref children } => children.values(),
@@ -213,7 +205,7 @@ pub struct SuffixTree<'a, T: Sized + 'a> {
     root: Node<T>
 }
 
-impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
+impl<'a, T: Ord + Copy> SuffixTree<'a, T> {
     pub fn new(text: &'a [T]) -> SuffixTree<'a, T> {
         let mut st = SuffixTree {
             orig: text,
@@ -223,11 +215,11 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         st
     }
 
+    // http://stackoverflow.com/questions/9452701/ukkonens-suffix-tree-algorithm-in-plain-english
+    // http://pastie.org/5925812
     fn build(&mut self) {
         let root_link = Rawlink::some(&mut self.root);
         let text = self.orig;
-        // http://stackoverflow.com/questions/9452701/ukkonens-suffix-tree-algorithm-in-plain-english
-        // http://pastie.org/5925812
         // active point
         let mut active_node = root_link;
         let mut active_edge: usize = 0; //  0 used for null
@@ -236,7 +228,6 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         let mut remainder = 0;
         for (pos, &c) in text.iter().enumerate() {
             remainder += 1;
-
             // println!("active point => ({:?}, {:?}, {})", active_node.resolve(), active_edge, active_length);
             // println!("remainder => {}", remainder);
             let mut need_suffix_link: Rawlink<Node<T>> = Rawlink::none();
@@ -292,11 +283,11 @@ fn dot_id<T>(x: &T) -> u64 {
     }
 }
 
-impl<'a> SuffixTree<'a, char> {
+impl<'a, T: Ord + Copy + fmt::Display> SuffixTree<'a, T> {
     pub fn to_dot(&self) -> String {
         let mut dot = String::new();
         dot.push_str("digraph G {\n");
-        dot.push_str("node [shape=point];\n");
+        dot.push_str("  node [shape=point];\n");
         let mut queue = Queue::new();
         queue.enqueue(&self.root);
         while !queue.is_empty() {
@@ -307,7 +298,7 @@ impl<'a> SuffixTree<'a, char> {
             } else if x.is_root() || x.is_internal() {
                 for node in x.iter_children() {
                     let nid = dot_id(node);
-                    dot.push_str(&format!("  {} -> {} [ label = \"{:}\"];\n", pid, nid, node.slice(self.orig).iter().map(|&c| c).collect::<String>()));
+                    dot.push_str(&format!("  {} -> {} [ label = \"{}\"];\n", pid, nid, node.slice(self.orig).iter().map(|c| c.to_string()).collect::<Vec<String>>().join(" ")));
                     x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
                     if node.is_internal() {
                         queue.enqueue(node);
@@ -319,36 +310,6 @@ impl<'a> SuffixTree<'a, char> {
         dot
     }
 }
-
-impl<'a> SuffixTree<'a, u8> {
-    pub fn to_dot(&self) -> String {
-        let mut dot = String::new();
-        dot.push_str("digraph G {\n");
-        dot.push_str("node [shape=point];\n");
-        let mut queue = Queue::new();
-        queue.enqueue(&self.root);
-        while !queue.is_empty() {
-            let x = queue.dequeue().unwrap();
-            let mut pid = dot_id(x);
-            if x.is_root() {
-                pid = 0;
-            }
-            if x.is_root() || x.is_internal() {
-                for node in x.iter_children() {
-                    let nid = dot_id(node);
-                    dot.push_str(&format!("  {} -> {} [ label = \"{:}\"];\n", pid, nid, &String::from_utf8_lossy(node.slice(self.orig))));
-                    x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
-                    if node.is_internal() {
-                        queue.enqueue(node);
-                    }
-                }
-            }
-        }
-        dot.push_str("}\n");
-        dot
-    }
-}
-
 
 impl<'a, T: fmt::Display + fmt::Debug> fmt::Display for SuffixTree<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

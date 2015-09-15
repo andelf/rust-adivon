@@ -4,6 +4,8 @@ use adivon::suffix_tree::SuffixTree;
 
 
 fn main() {
-    let st = SuffixTree::new(b"abcabxabcd");
+    let para = "she sells sea shells on the sea shore she sells sea shells on the sea shorethe shells";
+    let segs = para.split(' ').collect::<Vec<&str>>();
+    let st = SuffixTree::new(&segs);
     println!("{}", st.to_dot());
 }
