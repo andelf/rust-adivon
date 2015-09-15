@@ -7,6 +7,7 @@ use super::Queue;
 
 pub use self::Node::*;
 
+#[derive(Debug)]
 struct Rawlink<T> {
     p: *mut T,
 }
@@ -52,6 +53,7 @@ impl<T> Rawlink<T> {
     }
 }
 // a node in SuffixTree
+#[derive(Debug, Clone)]
 enum Node<T> {
     Leaf { start: usize },
     Internal {
@@ -63,7 +65,7 @@ enum Node<T> {
     Root { children: BTreeMap<T, Node<T>> }
 }
 
-impl<T: Ord + Copy> Node<T> {
+impl<T: Ord + Copy + fmt::Debug> Node<T> {
     pub fn root() -> Node<T> {
         Root { children: BTreeMap::new() }
     }
@@ -88,19 +90,6 @@ impl<T: Ord + Copy> Node<T> {
         }
     }
 
-    fn shrink(&mut self, offset: usize) {
-        match *self {
-            Leaf { ref mut start } => {
-                *start += offset;
-            },
-            Internal { ref mut start, ref end, .. } => {
-                *start += offset;
-                assert!(*start > *end);
-            },
-            Root { .. } => panic!("can't shrink root node")
-        }
-    }
-
     fn start(&self) -> usize {
         match *self {
             Leaf { start } => {
@@ -113,9 +102,28 @@ impl<T: Ord + Copy> Node<T> {
         }
     }
 
+    fn shrink(&mut self, offset: usize) {
+        match *self {
+            Leaf { ref mut start } => {
+                *start += offset;
+            },
+            Internal { ref mut start, ref end, .. } => {
+                *start += offset;
+                assert!(*start < *end);
+            },
+            Root { .. } => panic!("can't shrink root node")
+        }
+    }
+
     pub fn split_at(&mut self, offset: usize, seq: &[T]) {
         let new = Node::internal(self.start(), self.start()+offset);
         let mut old = mem::replace(self, new);
+        if let Internal { ref mut suffix_link, .. } = *self {
+            *suffix_link = old.suffix_link();
+        }
+        if let Internal { ref mut suffix_link, .. } = old {
+            *suffix_link = Rawlink::none();
+        }
         old.shrink(offset);
         self.add_child(old, seq);
     }
@@ -159,8 +167,14 @@ impl<T: Ord + Copy> Node<T> {
     fn length(&self, pos: usize) -> usize {
         match *self {
             Leaf { ref start } => pos - start,
-            Internal { ref start, ref end, .. } => end - start,
-            Root { .. } => panic!("leaf have no children")
+            Internal { ref start, ref end, .. } => {
+                if *end < pos {
+                    *end - *start
+                } else {
+                    pos - *start
+                }
+            },
+            Root { .. } => 0,
         }
     }
 
@@ -200,12 +214,13 @@ impl<T: Ord + Copy> Node<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct SuffixTree<'a, T: Sized + 'a> {
     orig: &'a [T],
     root: Node<T>
 }
 
-impl<'a, T: Ord + Copy> SuffixTree<'a, T> {
+impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
     pub fn new(text: &'a [T]) -> SuffixTree<'a, T> {
         let mut st = SuffixTree {
             orig: text,
@@ -215,6 +230,29 @@ impl<'a, T: Ord + Copy> SuffixTree<'a, T> {
         st
     }
 
+    pub fn contains(&self, query: &[T]) -> bool {
+        let text = self.orig;
+        let mut x = Some(&self.root);
+        let nquery = query.len();
+        let mut pos = 0;
+        while !x.map_or(true, |n| n.is_leaf()) && pos < nquery {
+            x = x.unwrap().child_starts_with(&query[pos]);
+            if let Some(ref node) = x {
+                let label = node.slice(text);
+                let nlabel = label.len();
+                if nlabel <= query[pos..].len() {
+                    if label == &query[pos.. pos + nlabel] {
+                        pos += nlabel;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return label.starts_with(&query[pos..]);
+                }
+            }
+        }
+        pos == nquery
+    }
     // http://stackoverflow.com/questions/9452701/ukkonens-suffix-tree-algorithm-in-plain-english
     // http://pastie.org/5925812
     fn build(&mut self) {
@@ -251,6 +289,9 @@ impl<'a, T: Ord + Copy> SuffixTree<'a, T> {
                         need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(active_node));
                         break;
                     }
+                    // println!("pos => {} c => {:?}", pos, c);
+                    // println!("self => {:?}", self.root);
+                    // println!("next => {:?}", next);
                     next.split_at(active_length, text);
                     next.add_child(Node::leaf(pos), text);
                     need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
@@ -283,7 +324,7 @@ fn dot_id<T>(x: &T) -> u64 {
     }
 }
 
-impl<'a, T: Ord + Copy + fmt::Display> SuffixTree<'a, T> {
+impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
     pub fn to_dot(&self) -> String {
         let mut dot = String::new();
         dot.push_str("digraph G {\n");
@@ -299,7 +340,7 @@ impl<'a, T: Ord + Copy + fmt::Display> SuffixTree<'a, T> {
                 for node in x.iter_children() {
                     let nid = dot_id(node);
                     dot.push_str(&format!("  {} -> {} [ label = \"{}\"];\n", pid, nid, node.slice(self.orig).iter().map(|c| c.to_string()).collect::<Vec<String>>().join(" ")));
-                    x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
+                    // x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
                     if node.is_internal() {
                         queue.enqueue(node);
                     }
@@ -320,9 +361,24 @@ impl<'a, T: fmt::Display + fmt::Debug> fmt::Display for SuffixTree<'a, T> {
 
 #[test]
 fn test_suffix_tree() {
-    let s = "abcabxabcd".chars().collect::<Vec<char>>();
+    let s = "abcabxabcdabcabxabc".chars().collect::<Vec<char>>();
     let st = SuffixTree::new(&s);
     println!("==================================================");
     println!("got => {}", st);
     println!("dot =>\n{}", st.to_dot());
+}
+
+
+#[test]
+fn test_suffix_tree_contains() {
+    let s = b"abcabxabcdaabab";
+    let st = SuffixTree::new(s);
+
+    assert!(st.contains(b"abc"));
+    assert!(st.contains(b""));
+    assert!(st.contains(b"b"));
+    assert!(!st.contains(b"y"));
+    assert!(st.contains(b"abcabxabcdaabab"));
+    assert!(st.contains(b"bxabcdaa"));
+    assert!(!st.contains(b"bxabadaa"));
 }
