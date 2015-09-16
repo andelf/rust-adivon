@@ -7,6 +7,7 @@ use super::Queue;
 
 pub use self::Node::*;
 
+#[allow(raw_pointer_derive)]
 #[derive(Debug)]
 struct Rawlink<T> {
     p: *mut T,
@@ -52,6 +53,7 @@ impl<T> Rawlink<T> {
         }
     }
 }
+
 // a node in SuffixTree
 #[derive(Debug, Clone)]
 enum Node<T> {
@@ -221,6 +223,7 @@ pub struct SuffixTree<'a, T: Sized + 'a> {
 }
 
 impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
+    ///
     pub fn new(text: &'a [T]) -> SuffixTree<'a, T> {
         let mut st = SuffixTree {
             orig: text,
@@ -230,6 +233,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         st
     }
 
+    /// check if a string query is a substring
     pub fn contains(&self, query: &[T]) -> bool {
         let text = self.orig;
         let mut x = Some(&self.root);
@@ -253,6 +257,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         }
         pos == nquery
     }
+
     // http://stackoverflow.com/questions/9452701/ukkonens-suffix-tree-algorithm-in-plain-english
     // http://pastie.org/5925812
     fn build(&mut self) {
@@ -266,8 +271,6 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         let mut remainder = 0;
         for (pos, &c) in text.iter().enumerate() {
             remainder += 1;
-            // println!("active point => ({:?}, {:?}, {})", active_node.resolve(), active_edge, active_length);
-            // println!("remainder => {}", remainder);
             let mut need_suffix_link: Rawlink<Node<T>> = Rawlink::none();
 
             while remainder > 0 {
@@ -289,9 +292,6 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                         need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(active_node));
                         break;
                     }
-                    // println!("pos => {} c => {:?}", pos, c);
-                    // println!("self => {:?}", self.root);
-                    // println!("next => {:?}", next);
                     next.split_at(active_length, text);
                     next.add_child(Node::leaf(pos), text);
                     need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
@@ -379,6 +379,6 @@ fn test_suffix_tree_contains() {
     assert!(st.contains(b"b"));
     assert!(!st.contains(b"y"));
     assert!(st.contains(b"abcabxabcdaabab"));
-    assert!(st.contains(b"bxabcdaa"));
+    assert!( st.contains(b"bxabcdaa"));
     assert!(!st.contains(b"bxabadaa"));
 }
