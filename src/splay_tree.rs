@@ -147,7 +147,7 @@ impl<K: PartialOrd, V> Node<K, V> {
     }
 }
 
-
+/// Splay tree. Supports splay-insert, -search, and -delete.
 pub struct SplayTree<K,V> {
     root: Option<Box<Node<K,V>>>,
     // size: usize
@@ -170,6 +170,10 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
             root: None,
             // size: 0
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
     }
 
     pub fn size(&self) -> usize {
@@ -211,6 +215,7 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
         })
     }
 
+    /// Splay tree insertion.
     pub fn insert(&mut self, key: K, val: V) {
         if self.root.is_none() {
             self.root = Some(Box::new(Node::new(key, val)));
@@ -238,6 +243,8 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
         }
     }
 
+    /// Splay tree deletion.
+    // use Algs4 approach
     pub fn remove(&mut self, key: &K) -> Option<V> {
         if self.root.is_none() {
             return None;
@@ -264,6 +271,7 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
 #[test]
 fn test_splay_tree() {
     let mut st1 = SplayTree::new();
+    assert!(st1.is_empty());
     st1.insert(5, 5);
     st1.insert(9, 9);
     st1.insert(13, 13);
