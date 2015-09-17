@@ -2,8 +2,6 @@ use std::fmt;
 
 use self::Rope::*;
 
-
-
 fn max<T: PartialOrd + Copy>(x: T, y: T) -> T {
     if x >= y {
         x
@@ -173,6 +171,11 @@ impl Rope {
         }
     }
 
+    pub fn peek<F>(self, mut f: F) -> Self where F: FnMut(&Self) {
+        f(&self);
+        self
+    }
+
     fn into_chars(self) -> Vec<char> {
         match self {
             FlatCharVec { seq }         => seq,
@@ -192,10 +195,6 @@ impl Rope {
                 inner[offset .. offset+length].to_vec()
             }
         }
-    }
-
-    fn is_balanced(&self) -> bool {
-        true
     }
 }
 
@@ -261,7 +260,9 @@ fn test_rope2() {
     let s = Rope::from_str("Hello")
         .append(" abcdefghijklmnopqrstuvwxyz")
         .append(" World")
+        .peek(|r| println!("D1 got => {}", r))
         .append(" abcdefghijklmnopqrstuvwxyz")
+        .peek(|r| println!("D2 depth => {}", r.depth()))
         .append(" abcdefghijklmnopqrstuvwxyz")
         .append(" abcdefghijklmnopqrstuvwxyz");
 
