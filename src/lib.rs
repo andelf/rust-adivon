@@ -16,10 +16,12 @@ pub mod hashst;
 
 pub mod tries;
 
-pub mod suffix_tree;
-
-pub mod splay_tree;
-
 pub mod prelude;
 
 pub use prelude::*;
+
+
+pub mod suffix_tree;
+pub mod splay_tree;
+
+pub mod rope;
