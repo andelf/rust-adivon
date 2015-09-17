@@ -161,6 +161,18 @@ impl Rope {
         }
     }
 
+    pub fn insert<T: IntoRope>(self, offset: usize, s: T) -> Self {
+        assert!(offset <= self.len());
+        let r = s.into_rope();
+        if offset == 0 {
+            r.append(self)
+        } else if offset == self.len() {
+            self.append(r)
+        } else {
+            self.clone().slice_to(offset).append(r).append(self.slice_from(offset))
+        }
+    }
+
     fn into_chars(self) -> Vec<char> {
         match self {
             FlatCharVec { seq }         => seq,
@@ -233,6 +245,13 @@ fn test_rope() {
 
     println!("depth => {}", s.depth());
     println!("len => {}", s.len());
+    println!("got => {:?}", s);
+
+    let s = s.insert(0, "Oh, man, ");
+
+    println!("got => {:?}", s);
+
+    let s = s.insert(9, "wait! ");
     println!("got => {:?}", s);
     println!("got => {:?}", s.reverse());
 }
