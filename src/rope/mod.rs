@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops;
 
 use self::Rope::*;
 
@@ -105,6 +106,72 @@ impl Rope {
         }
     }
 
+    pub fn char_ref(&self, idx: usize) -> Option<&char> {
+        match *self {
+            Concatenation { ref left, ref right, .. } => {
+                let llen = left.len();
+                if idx < llen {
+                    left.char_ref(idx)
+                } else if idx < llen + right.len() {
+                    right.char_ref(idx - llen)
+                } else {
+                    None
+                }
+            },
+            FlatCharVec { ref seq } => {
+                if idx < seq.len() {
+                    Some(&seq[idx])
+                } else {
+                    None
+                }
+            },
+            SubString { ref rope, ref offset, ref length }  => {
+                if idx < *length {
+                    rope.char_ref(offset + idx)
+                } else {
+                    None
+                }
+            },
+            Reverse { ref rope } => {
+                let len = rope.len();
+                rope.char_ref(len - idx - 1)
+            }
+        }
+    }
+
+    pub fn char_ref_mut(&mut self, idx: usize) -> Option<&mut char> {
+        match *self {
+            Concatenation { ref mut left, ref mut right, .. } => {
+                let llen = left.len();
+                if idx < llen {
+                    left.char_ref_mut(idx)
+                } else if idx < llen + right.len() {
+                    right.char_ref_mut(idx - llen)
+                } else {
+                    None
+                }
+            },
+            FlatCharVec { ref mut seq } => {
+                if idx < seq.len() {
+                    Some(&mut seq[idx])
+                } else {
+                    None
+                }
+            },
+            SubString { ref mut rope, ref offset, ref length }  => {
+                if idx < *length {
+                    rope.char_ref_mut(offset + idx)
+                } else {
+                    None
+                }
+            },
+            Reverse { ref mut rope } => {
+                let len = rope.len();
+                rope.char_ref_mut(len - idx - 1)
+            }
+        }
+    }
+
     // FIXME: clone?
     pub fn delete(self, start: usize, end: usize) -> Self {
         let tail = self.clone().slice_from(end);
@@ -198,6 +265,24 @@ impl Rope {
     }
 }
 
+impl ops::Index<usize> for Rope {
+    type Output = char;
+    fn index<'a>(&'a self, index: usize) -> &'a Self::Output {
+        self.char_ref(index).unwrap()
+    }
+}
+
+// FIXME: Rope should not be a mutable structure
+impl ops::IndexMut<usize> for Rope {
+    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut Self::Output {
+        self.char_ref_mut(index).unwrap()
+    }
+}
+
+// TODO: how to implement this?
+// impl ops::Index<ops::Range<usize>> for Rope {
+// }
+
 impl fmt::Display for Rope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.to_string())
@@ -238,6 +323,8 @@ impl<'a> IntoRope for &'a str {
     }
 }
 
+
+
 #[test]
 fn test_rope() {
     let s = Rope::from_str("Hello").append(' ').append("World").append('!');
@@ -274,19 +361,41 @@ fn test_rope2() {
     println!("len => {:?}", s2.len());
 }
 
+
+#[test]
+fn test_rope_char_at() {
+    // Note: if str to short, will be automaticlly flatten.
+    let s = Rope::from_str("zzzzzzzzzzzzzzzzzzzzHello !").insert(26, "Worldxxxxxxxxxxxxxxxxxxxx");
+    // case 0 flat
+    assert_eq!(s.char_ref(20), Some(&'H'));
+    // assert_eq!(s[20], 'H');
+    // case 1 concat
+    assert_eq!(s.char_ref(26), Some(&'W'));
+    // will be "Held!"
+    let s = s.delete(23, 30);
+    assert_eq!(s.char_ref(23), Some(&'d'));
+    // reverse
+    let s = s.reverse().insert(30, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").delete(35, 40);
+    for i in 0 .. s.len() {
+        assert_eq!(s.to_string().char_at(i), s.char_ref(i).map(|&c| c).unwrap());
+    }
+}
+
+#[test]
+fn test_rope_index_mut() {
+    let mut s = Rope::from_str("zzzzzzzzzzzzzzzzzzzzHello !")
+        .insert(23, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+        .reverse()
+        .delete(35, 40)
+        .insert(26, "Worldxxxxxxxxxxxxxxxxxxxx");
+
+    assert!(s[20] != 'd');
+    s[20] = 'd';
+    assert_eq!(s[20], 'd');
+}
+
+// TODO:
 // pub trait Rope {
-//     fn find(&self, ch: char) -> Option<usize>;
-//     // fn find(&self, pat: &str) -> Option<usize>;
-//     fn insert(self, offset: usize, s: &str) -> Self;
-
-//     fn rebalance(self) -> Self;
-
-//     fn trim_left(self) -> Self;
-//     fn trim_right(self) -> Self;
-//     fn trim(self) -> Self {
-//         self.trim_left().trim_right()
-//     }
-
 //     fn starts_with(self, prefix: &str) -> bool;
 //     fn ends_with(self, suffix: &str) -> bool;
 // }
