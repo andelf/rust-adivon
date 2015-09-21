@@ -10,3 +10,8 @@ keywords = [
   "book"
 ]
 license = "MIT"
+
+
+
+[dependencies]
+vec_map = "*"

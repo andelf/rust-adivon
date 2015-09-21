@@ -4,8 +4,10 @@ use adivon::suffix_tree::SuffixTree;
 
 
 fn main() {
-    let s = "".chars().collect::<Vec<char>>();
-    let st = SuffixTree::new(&s);
+    let s = "apple".chars().collect::<Vec<char>>();
+    let s2 = "apple_tree".chars().collect::<Vec<char>>();
+    let mut st = SuffixTree::new(&s);
+    st.add(&s2);
     println!("{}", st.to_dot());
 
 }

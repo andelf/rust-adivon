@@ -48,6 +48,10 @@ impl<T> Stack<T> {
         sz
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.peek().is_none()
+    }
+
     pub fn peek(&self) -> Option<&T> {
         self.s.as_ref().map(|n| &n.val)
     }
