@@ -216,6 +216,22 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
         if let Internal { .. } = *self { true } else { false }
     }
 
+    pub fn clean_suffix_links(&mut self) {
+        match *self {
+            Internal { ref mut suffix_link, ref mut children, .. } => {
+                suffix_link.take();
+                for (_, child) in children.iter_mut() {
+                    child.clean_suffix_links();
+                }
+            },
+            Root { ref mut children } => {
+                for (_, child) in children.iter_mut() {
+                    child.clean_suffix_links();
+                }
+            }
+        }
+    }
+
     fn length(&self, txt_idx: usize, pos: usize) -> usize {
         match *self {
             Internal { ref data, ref offsets, .. } => {
@@ -302,7 +318,8 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
     // }
 
     pub fn add(&mut self, txt: &'a [T]) {
-        self.ukkonen95(txt)
+        self.root.clean_suffix_links();
+        self.ukkonen95(txt);
     }
 
     // http://stackoverflow.com/questions/9452701/ukkonens-suffix-tree-algorithm-in-plain-english
@@ -315,86 +332,81 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         let tlen = txt.len();
         // active point
         let mut active_node = root_link;
-        let mut active_edge: usize = 0; //  0 used for null
+        let mut active_edge: usize = 0;
         let mut active_length = 0;
-        // how many to be inserted
+        // remaining suffix count
         let mut remainder = 0;
+        // last item repeated twice
+        //for (pos, &c) in txt.iter().chain(iter::once(&txt[tlen-1])).enumerate() {
         for (pos, &c) in txt.iter().enumerate() {
+            let end = pos + 1;
             remainder += 1;
-            let mut need_suffix_link: Rawlink<Node<T>> = Rawlink::none();
 
-            println!("DEBUG running on pos=>{} {:?}", pos, c);
+            let mut last_new_node: Rawlink<Node<T>> = Rawlink::none();
+            println!("** Phase {}, read {:?}", pos+1, c);
             while remainder > 0 {
-                if active_length == 0 { active_edge = pos }
+                if active_length == 0 { active_edge = pos } // APCFALZ
+                // should create new terminal node here
                 if active_node.resolve().map_or(false, |n| n.child_starts_with(&txt[active_edge]).is_none()) {
+                    // Extension Rule 2 (A new leaf edge gets created)
                     active_node.resolve_mut().map(|n| n.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos)));
-                    need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(active_node));
-                    need_suffix_link = active_node;
+                    last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
+                    last_new_node = Rawlink::none();
                 } else if let Some(ref mut next) = active_node.resolve_mut().unwrap().mut_child_starts_with(&txt[active_edge]) {
-                    // walk down
-                    if let Internal { ref mut offsets, .. } = **next {
-                        if offsets.get(&txt_idx).is_none() {
-                            offsets.insert(txt_idx, active_edge);
-                        }
-                    }
+                    // if let Internal { ref mut offsets, .. } = **next {
+                    //     if offsets.get(&txt_idx).is_none() {
+                    //         offsets.insert(txt_idx, active_edge);
+                    //     }
+                    // }
 
+                    // activePoint change for walk down
                     let nlen = next.length(txt_idx, pos);
-
                     if active_length >= nlen {
                         active_edge += nlen;
                         active_length -= nlen;
                         active_node = Rawlink::some(next);
+                        // start from next node
                         continue;
                     }
+
+                    // Extension Rule 3 (current character being processed is already on the edge)
                     if next.data()[active_length] == c {
-                        if pos == tlen - 1 {
-                            println!("will split node: {:?}", next);
-                            println!("split at {}", active_length + 1);
-                            // ends at current node, just add to terminate VecMap
-                            if next.data().len() == active_length + 1 {
-                                next.split_at(txt_idx, active_length + 1);
-                                // need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
-                                // need_suffix_link = Rawlink::some(next);
-                            }
-                            next.add_terminate(txt_idx, pos - active_edge);
-                            // active_length += 1;
-                            // remainder -= 1;
-                            // if remainder > 0 {
-                            //     active_length -= 1;
-                            // }
-                            // continue;
-                        } else {
-                            active_length += 1;
-                            need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(active_node));
-                            break;
+                        // If a newly created node waiting for it's
+                        // suffix link to be set, then set suffix link
+                        // of that waiting node to curent active node
+                        if !last_new_node.is_null() && !active_node.resolve().unwrap().is_root() {
+                            last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
+                            last_new_node = Rawlink::none();
                         }
-                    } else {
-                        println!("split at {}", active_length);
-                        next.split_at(txt_idx, active_length);
-                        next.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos));
-                        need_suffix_link.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
-                        need_suffix_link = Rawlink::some(next);
+                        // APCFER3
+                        active_length += 1;
+                        break;
                     }
+
+                    next.split_at(txt_idx, active_length);
+                    next.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos));
+
+                    last_new_node.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
+                    last_new_node = Rawlink::some(next);
+                } else {
+                    unreachable!();
                 }
+
                 remainder -= 1;
 
-                if active_node.resolve().unwrap().is_root() && active_length > 0 { // rule 1
+                if active_node.resolve().unwrap().is_root() && active_length > 0 { // APCFER2C1
                     active_length -= 1;
                     active_edge = pos - remainder + 1;
-                } else {
-                    // rule 3
-                    let link = active_node.resolve().unwrap().suffix_link();
-                    if link.is_null() {
-                        active_node = root_link;
-                    } else {
-                        active_node = link;
-                    }
+                } else if !active_node.resolve().unwrap().is_root() {
+                    active_node = active_node.resolve().unwrap().suffix_link();
                 }
             }
-            if remainder > 0 {
-                println!(":( remainder = {}", remainder);
-            }
         }
+
+        if remainder > 0 {
+            println!(":( remainder = {}", remainder);
+        }
+
     }
 }
 
@@ -420,7 +432,6 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
                 if node.terminates_any() {
                     dot.push_str(&format!("  {} [ color = \"red\", ];\n", nid));
                 }
-                // FIXME: concat with no space between chars
                 dot.push_str(&format!("  {} -> {} [ label = \"{}\"];\n", pid, nid,
                                       node.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()));
                 // x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
@@ -437,7 +448,7 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
 
 impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SuffixTree(txts: {:?})\n", self.txts);
+        try!(write!(f, "SuffixTree(txts: {:?})\n", self.txts));
         let mut stack = Stack::new();
         let mut ident_stack = Stack::new();
         stack.push(&self.root);
@@ -447,11 +458,11 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<
             let ident = ident_stack.pop().unwrap();
             if !x.is_root() {
                 let spaces = String::from_iter(iter::repeat(' ').take(ident).collect::<Vec<char>>());
-                write!(f, "{}|<{}>", spaces, x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat());
+                try!(write!(f, "{}|<{}>", spaces, x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()));
                 if x.terminates_any() {
-                    writeln!(f, "*");
+                    try!(writeln!(f, "*"));
                 } else {
-                    writeln!(f, "");
+                    try!(writeln!(f, ""));
                 }
             }
             for node in x.iter_children(){
@@ -466,21 +477,11 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<
 
 #[test]
 fn test_suffix_tree() {
-    use std::fs::File;
-    use std::io::Write;
-
-    let s1 = "abcabcaba".chars().collect::<Vec<char>>();
-    let s2 = "ca".chars().collect::<Vec<char>>();
+    let s1 = "abcabxabcd#".chars().collect::<Vec<char>>();
     println!("s1 => {:?}", s1);
-    let mut st = SuffixTree::new(&s1);
-    println!("got => {}", st);
-    println!("s2 => {:?}", s2);
-    st.add(&s2);
-    println!("==================================================");
+    let st = SuffixTree::new(&s1);
     println!("got => {}", st);
     println!("dot =>\n{}", st.to_dot());
-    let mut f = File::create("./stree.dot").unwrap();
-    write!(f, "{}", st.to_dot());
 }
 
 
@@ -496,4 +497,4 @@ fn test_suffix_tree() {
 //     assert!(st.contains(b"abcabxabcdaabab"));
 //     assert!( st.contains(b"bxabcdaa"));
 //     assert!(!st.contains(b"bxabadaa"));
-// }
+    // }
