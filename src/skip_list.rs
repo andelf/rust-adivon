@@ -68,6 +68,13 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
         Rawlink::some(self)
     }
 
+    fn adjust_head(&mut self, new_level: usize) {
+        let diff = new_level - self.level();
+        if diff > 0 {
+            self.forward.append(&mut iter::repeat(Rawlink::none()).take(diff).collect())
+        }
+    }
+
     fn insert(&mut self, key: Key, it: E, level: usize) {
     }
 }
@@ -100,7 +107,6 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
     }
 
     pub fn find(&self, key: &Key) -> Option<&E> {
-
         let level = self.level();
         let mut x = self.forward[level-1];
         for i in (0..level).rev() {
@@ -241,8 +247,48 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
         }
     }
 
-    pub fn remove(&mut self, key: &Key) {
-        unimplemented!()
+    pub fn remove(&mut self, key: &Key) -> Option<E> {
+        if self.head.is_none() {
+            return None;
+        }
+        let level = self.level();
+        let mut x = self.forward[level-1];
+        let mut left = x;
+
+        for i in (0..level).rev() {
+            while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
+                x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < *key) {
+                    let nx = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i] );
+                    x = nx;
+                }
+        }
+
+        while x.resolve().map_or(false, |n| n.next.is_some()) &&
+            x.resolve().map_or(false, |n| n.next.as_ref().unwrap().key < *key) {
+                let nx = x.resolve_mut().map_or_else(Rawlink::none, |n| {
+                    n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
+                });
+                left = x;
+                x = nx
+            }
+
+
+        if !x.resolve().map_or(false, |n| n.key == *key ) {
+            None
+        } else if x.p == left.p && x.is_some() {
+            println!("fuck equels");
+            // this means remove head
+            let head = self.head.take().unwrap();
+            // remove box
+            let head = *head;
+            let SkipNode { it, next, forward, .. } = head;
+            self.head = next;
+            self.forward = forward;
+            self.head.as_mut().map(|n| n.adjust_head(level));
+            Some(it)
+        } else {
+            unimplemented!()
+        }
     }
 
     pub fn size(&self) -> usize {
@@ -458,4 +504,8 @@ fn test_skip_list() {
 
     list.insert(20, ());
     println!("has(20) => {}", list.contains_key(&20));
+    println!("list => {}", list);
+
+    list.remove(&20);
+    println!("list => {}", list);
 }
