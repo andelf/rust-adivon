@@ -2,7 +2,7 @@
 name = "adivon"
 version = "0.2.3"
 authors = ["Shuyu Wang <andelf@gmail.com>"]
-description = "Data Structures from the <<Algorithms, 4ed.>> book."
+description = "Data Structures of daily use: Graph, HashTable, PriorityQueue, Trie, SuffixTree, Rope, SplayTree, SkipList."
 homepage = "https://github.com/andelf/rust-adivon"
 repository = "https://github.com/andelf/rust-adivon.git"
 keywords = [
