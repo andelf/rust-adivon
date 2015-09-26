@@ -6,7 +6,7 @@ use std::iter;
 use rand::{thread_rng, Rng};
 
 // 32
-const DEFAULT_LEVEL: usize = 6;
+const DEFAULT_LEVEL: usize = 3;
 
 
 type Link<T> = Option<Box<T>>;
@@ -61,7 +61,7 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
 
     #[inline]
     fn level(&self) -> usize {
-        self.level
+        self.forward.len()
     }
 
     fn to_ptr(&mut self) -> Rawlink<SkipNode<Key,E>> {
@@ -92,46 +92,40 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
     }
 
     pub fn level(&self) -> usize {
-        self.forward.iter().take_while(|p| p.is_some()).count()
+        self.level
+    }
+
+    pub fn contains_key(&self, key: &Key) -> bool {
+        self.find(key).is_some()
     }
 
     pub fn find(&self, key: &Key) -> Option<&E> {
-        None
-        // let mut x = self.head.as_ref().map_or_else(Rawlink::none, |n| {
-        //         Rawlink::some(&mut **n)
-        //     });
-        //     // insert normally
-        //     let mut update: Vec<Rawlink<SkipNode<Key,E>>> = self.forward[..self.level()].to_vec();
-        //         x = update[new_level-1];
-        //         for i in (0..new_level).rev() {
-        //             while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
-        //                 x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < key) {
-        //                     let nx = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i] );
-        //                     x = nx;
-        //                 }
-        //             update[i] = x.resolve_mut().map_or_else(Rawlink::none, |n| {
-        //                 Rawlink::some(&mut *n)
-        //             });
-        //         }
-        //     }
 
-        //     let mut y = x.resolve_mut().map_or_else(Rawlink::none, |n| {
-        //         Rawlink::some(&mut *n)
-        //     });
-        //     // When head node level is lower than current
-        //     if y.is_none() {
-        //         println!("update => {:?}", update);
-        //         y = self.head.as_mut().map_or_else(Rawlink::none, |n| {
-        //             Rawlink::some(&mut **n)
-        //         });
-        //     }
-        //     while y.resolve().map_or(false, |n| n.next.is_some()) &&
-        //         y.resolve().map_or(false, |n| n.next.as_ref().unwrap().key < key) {
-        //             let ny = y.resolve_mut().map_or_else(Rawlink::none, |n| {
-        //                 n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
-        //             });
-        //             y = ny
-        //         }
+        let level = self.level();
+        let mut x = self.forward[level-1];
+        for i in (0..level).rev() {
+            while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
+                x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < *key) {
+                    let nx = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i] );
+                    x = nx;
+                }
+        }
+
+        while x.resolve().map_or(false, |n| n.next.is_some()) &&
+            x.resolve().map_or(false, |n| n.next.as_ref().unwrap().key < *key) {
+                let nx = x.resolve_mut().map_or_else(Rawlink::none, |n| {
+                    n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
+                });
+                x = nx
+            }
+
+        x.resolve().map_or(None, |n| {
+            if n.key == *key {
+                Some(&n.it)
+            } else {
+                None
+            }
+        })
     }
 
     fn adjust_head(&mut self, new_level: usize) {
@@ -447,13 +441,13 @@ impl<T> Clone for Rawlink<T> {
 
 #[test]
 fn test_skip_list() {
-    let mut list: SkipList<i8, ()> = SkipList::new();
+    let mut list: SkipList<i32, ()> = SkipList::new();
 
     let mut rng = thread_rng();
 
     //let vals = vec![ -18130, 16865, -1813, 1686, -181, 168, -18, 16];
-    for i in 0 .. 20 {
-        let val = rng.gen();
+    for i in 0 .. 10 {
+        let val = rng.gen_range(0, 2000);
         // let val = vals[i];
         println!("DEBUG {} insert => {}", i+1, val);
         list.insert(val, ());
@@ -461,4 +455,7 @@ fn test_skip_list() {
 
     println!("list => {}", list);
     println!("level => {}", list.level());
+
+    list.insert(20, ());
+    println!("has(20) => {}", list.contains_key(&20));
 }
