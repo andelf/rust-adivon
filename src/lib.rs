@@ -1,6 +1,7 @@
-#![feature(iter_arith, str_char)]
+#![feature(iter_arith, str_char, append)]
 
 extern crate vec_map;
+extern crate rand;
 
 
 pub mod bag;
@@ -17,6 +18,7 @@ pub mod splay_tree;
 
 pub mod rope;
 
+pub mod skip_list;
 
 pub mod prelude;
 pub use prelude::*;

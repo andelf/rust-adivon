@@ -159,6 +159,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
         self.add_child(old);
     }
 
+    #[allow(dead_code)]
     pub fn add_terminate(&mut self, txt_idx: usize, position: usize) {
         match *self {
             Internal { ref mut terminates, .. } => {
