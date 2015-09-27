@@ -1,3 +1,4 @@
+#![allow(unused_features)]
 #![feature(iter_arith, str_char, append)]
 
 extern crate vec_map;

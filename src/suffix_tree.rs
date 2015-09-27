@@ -178,14 +178,14 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
         }
     }
 
-    pub fn terminates(&self, txt_idx: usize) -> Option<usize> {
-        match *self {
-            Internal { ref terminates, .. } => {
-                terminates.get(&txt_idx).map(|&pos| pos)
-            },
-            _ => panic!("terminates error ")
-        }
-    }
+    // pub fn terminates(&self, txt_idx: usize) -> Option<usize> {
+    //     match *self {
+    //         Internal { ref terminates, .. } => {
+    //             terminates.get(&txt_idx).map(|&pos| pos)
+    //         },
+    //         _ => panic!("terminates error ")
+    //     }
+    // }
 
     #[inline]
     pub fn data(&self) -> &'a [T] {
@@ -330,7 +330,6 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         let root_link = Rawlink::some(&mut self.root);
         let txt_idx = self.txts.len();
         self.txts.push(txt);
-        let tlen = txt.len();
         // active point
         let mut active_node = root_link;
         let mut active_edge: usize = 0;
@@ -340,7 +339,6 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         // last item repeated twice
         //for (pos, &c) in txt.iter().chain(iter::once(&txt[tlen-1])).enumerate() {
         for (pos, &c) in txt.iter().enumerate() {
-            let end = pos + 1;
             remainder += 1;
 
             let mut last_new_node: Rawlink<Node<T>> = Rawlink::none();
@@ -377,7 +375,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                         // of that waiting node to curent active node
                         if !last_new_node.is_null() && !active_node.resolve().unwrap().is_root() {
                             last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
-                            last_new_node = Rawlink::none();
+                            // last_new_node = Rawlink::none();
                         }
                         // APCFER3
                         active_length += 1;
