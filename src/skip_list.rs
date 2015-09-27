@@ -1,4 +1,3 @@
-use std::mem;
 use std::fmt;
 use std::ptr;
 use std::iter;
@@ -40,9 +39,9 @@ pub struct SkipNode<Key,E> {
     key: Key,
     it: E,
     next: Link<SkipNode<Key,E>>,
-    prev: Rawlink<SkipNode<Key,E>>,
     // level 0 to DEFAULT_LEVEL
     forward: Vec<Rawlink<SkipNode<Key,E>>>,
+    level: usize
 }
 
 
@@ -53,8 +52,8 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
             key: key,
             it: it,
             next: None,
-            prev: Rawlink::none(),
             forward: iter::repeat(Rawlink::none()).take(level).collect(),
+            level: level
         }
     }
 
@@ -63,20 +62,12 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
         self.forward.len()
     }
 
-    fn to_ptr(&mut self) -> Rawlink<SkipNode<Key,E>> {
-        Rawlink::some(self)
-    }
-
-
     fn promote_level(&mut self, new_level: usize, forward: Vec<Rawlink<Self>>) {
         let level = self.level();
         for i in level .. new_level {
             self.forward.push(forward[i]);
         }
         assert!(self.level() == new_level, "promote_level()");
-    }
-
-    fn insert(&mut self, key: Key, it: E, level: usize) {
     }
 }
 
@@ -139,11 +130,10 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
     }
 
     fn adjust_head(&mut self, new_level: usize) {
-        let diff = new_level - self.level;
         let head_link  = Rawlink::from(&mut self.head);
         let level = self.level();
 
-        for i in level .. new_level {
+        for _ in level .. new_level {
             self.forward.push(head_link);
             self.head.as_mut().map(|n| n.forward.push(Rawlink::none()));
         }
@@ -232,7 +222,7 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                 }
             assert!(y.is_some());
             // create node and insert
-            let mut new_node = Some(Box::new(SkipNode::new(key, it, self.level)));
+            let mut new_node = Some(Box::new(SkipNode::new(key, it, new_level)));
             let new_link = new_node.as_mut().map_or_else(Rawlink::none, |n| {
                 Rawlink::some(&mut **n)
             });
@@ -268,7 +258,8 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
         }
         let level = self.level();
         let mut x = self.forward[level-1];
-        let mut left = x;
+
+        let mut update: Vec<Rawlink<SkipNode<Key,E>>> = self.forward[..level].to_vec();
 
         for i in (0..level).rev() {
             while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
@@ -276,6 +267,7 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                     let nx = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i] );
                     x = nx;
                 }
+            update[i] = x.resolve_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut *n));
         }
 
         while x.resolve().map_or(false, |n| n.next.is_some()) &&
@@ -283,15 +275,11 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                 let nx = x.resolve_mut().map_or_else(Rawlink::none, |n| {
                     n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
                 });
-                left = x;
                 x = nx
             }
 
 
-        if x.resolve().map_or(true, |n| n.key != *key ) {
-            println!("not found");
-            None
-        } else if x.p == left.p && x.is_some() {
+        if x.resolve().map_or(false, |n| n.key == *key ) {
             println!("fuck equels");
             // this means remove head
             let head = self.head.take().unwrap();
@@ -309,8 +297,26 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
             self.head = new_head;
 
             Some(it)
-        } else {
-            unimplemented!()
+        } else if x.is_some() {
+            // to be deleted
+            let current = x.resolve_mut().map_or(None, |n| n.next.take());
+            if current.as_ref().map_or(true, |n| n.key != *key ) {
+                return None;
+            }
+            let level = current.as_ref().unwrap().level();
+            // destruct
+            let SkipNode { it, next, forward, .. } = *current.unwrap();
+            // move next in
+            x.resolve_mut().map(|n| n.next = next);
+            // chain prev node and next node
+            for (i, prev) in update.iter_mut().take(level).enumerate() {
+                prev.resolve_mut().map(|n| {
+                    n.forward[i] = forward[i];
+                });
+            }
+            Some(it)
+        } else {                // x is empty
+            None
         }
     }
 
@@ -325,25 +331,25 @@ impl<Key: PartialOrd + fmt::Display + fmt::Debug, E: fmt::Debug> fmt::Display fo
         if self.head.is_none() {
             write!(f, "<empty skip list>")
         } else {
-            write!(f, "\nlv0 ");
+            try!(write!(f, "\nlv0 "));
             let mut x = self.head.as_ref();
             while x.is_some() {
-                write!(f, "{} --> ", x.as_ref().map_or_else(String::new, |n| format!("{}", n.key)));
+                try!(write!(f, "{} --> ", x.as_ref().map_or_else(String::new, |n| format!("{}", n.key))));
                 x = x.as_ref().map_or(None, |n| n.next.as_ref());
             }
-            writeln!(f, "");
+            try!(writeln!(f, ""));
             for i in 0..self.level {
-                write!(f, "lv{} ", i+1);
+                try!(write!(f, "lv{} ", i+1));
                 let mut x = self.forward[i];
                 while x.is_some() {
-                    write!(f, "{} ..> ",
-                           x.resolve().map_or_else(String::new, |n| format!("{}", n.key)));
+                    try!(write!(f, "{} ..> ",
+                           x.resolve().map_or_else(String::new, |n| format!("{}", n.key))));
                     if x.resolve().map_or(false, |n| n.level() <= i) {
                         break;
                     }
                     x = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i]);
                 }
-                writeln!(f, "");
+                try!(writeln!(f, ""));
             }
             Ok(())
         }
@@ -466,9 +472,9 @@ impl<T> Rawlink<T> {
         self.p.is_null()
     }
 
-    fn take(&mut self) -> Rawlink<T> {
-        mem::replace(self, Rawlink::none())
-    }
+    // fn take(&mut self) -> Rawlink<T> {
+    //     mem::replace(self, Rawlink::none())
+    // }
 
     /// Convert the `Rawlink` into an immutable Option value.
     fn resolve<'a>(&self) -> Option<&'a T> {
@@ -525,10 +531,11 @@ fn test_skip_list() {
     println!("list => {}", list);
     println!("level => {}", list.level());
 
-    list.insert(1000, ());
+    let v = 1000;
+    list.insert(v, ());
     println!("list => {}", list);
     println!("has(1000) => {}", list.contains_key(&1000));
 
-    list.remove(&1000);
+    list.remove(&v);
     println!("list => {}", list);
 }
