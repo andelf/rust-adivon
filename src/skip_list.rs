@@ -2,6 +2,8 @@ use std::fmt;
 use std::ptr;
 use std::iter;
 
+use std::collections::BTreeMap;
+
 use rand::{thread_rng, Rng};
 
 
@@ -179,17 +181,13 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
             new_node.as_mut().map(|n| n.next = self.head.take());
             self.head = new_node;
         } else {
-            println!("crash0");
-
             let mut x = self.head.as_mut().map_or_else(Rawlink::none, |n| {
                 Rawlink::some(&mut **n)
             });
             // insert normally
             let mut update: Vec<Rawlink<SkipNode<Key,E>>> = self.forward[..new_level].to_vec();
             if new_level > 0 {  // need to insert skip pointers
-                println!("new level => {}", new_level);
                 x = update[new_level-1];
-                println!("crash2");
                 for i in (0..new_level).rev() {
                     while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
                         x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < key) {
@@ -202,23 +200,18 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                 }
             }
 
-            println!("crash1");
             let mut y = x.resolve_mut().map_or_else(Rawlink::none, |n| {
                 Rawlink::some(&mut *n)
             });
             // When head node level is lower than current
             if y.is_none() {
-                println!("update => {:?}", update);
                 y = self.head.as_mut().map_or_else(Rawlink::none, |n| {
                     Rawlink::some(&mut **n)
                 });
             }
             while y.resolve().map_or(false, |n| n.next.is_some()) &&
                 y.resolve().map_or(false, |n| n.next.as_ref().unwrap().key < key) {
-                    let ny = y.resolve_mut().map_or_else(Rawlink::none, |n| {
-                        n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
-                    });
-                    y = ny
+                    y = y.resolve_mut().map_or_else(Rawlink::none, |n| Rawlink::from(&mut n.next));
                 }
             assert!(y.is_some());
             // create node and insert
@@ -264,24 +257,19 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
         for i in (0..level).rev() {
             while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
                 x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < *key) {
-                    let nx = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i] );
-                    x = nx;
+                    x = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i]);
                 }
             update[i] = x.resolve_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut *n));
         }
 
         while x.resolve().map_or(false, |n| n.next.is_some()) &&
             x.resolve().map_or(false, |n| n.next.as_ref().unwrap().key < *key) {
-                let nx = x.resolve_mut().map_or_else(Rawlink::none, |n| {
-                    n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
-                });
-                x = nx
+                x = x.resolve_mut().map_or_else(Rawlink::none, |n| Rawlink::from(&mut n.next));
             }
 
 
         if x.resolve().map_or(false, |n| n.key == *key ) {
-            println!("fuck equels");
-            // this means remove head
+            // key is head item
             let head = self.head.take().unwrap();
             let head = *head;   // unwrap Box
             let SkipNode { it, next, forward, .. } = head;
@@ -326,131 +314,51 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
 }
 
 
-impl<Key: PartialOrd + fmt::Display + fmt::Debug, E: fmt::Debug> fmt::Display for SkipList<Key,E> {
+impl<Key: Ord + fmt::Display + fmt::Debug, E: fmt::Debug> fmt::Display for SkipList<Key,E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.head.is_none() {
-            write!(f, "<empty skip list>")
-        } else {
-            try!(write!(f, "\nlv0 "));
-            let mut x = self.head.as_ref();
+            return write!(f, "<empty skip list>")
+        }
+        try!(write!(f, "\nlv0  "));
+
+        let mut offset_map = BTreeMap::new();
+        let mut offset = 5;
+        let mut x = self.head.as_ref();
+        while x.is_some() {
+            // FIXME: change to unwrap() at last format
+            offset_map.insert(&x.as_ref().unwrap().key, offset);
+            let nx = x.as_ref().map_or(None, |n| n.next.as_ref());
+            let label = x.as_ref().map_or_else(String::new, |n| format!("{}", n.key));
+            if nx.is_none() {
+                try!(writeln!(f, "{}", label));
+            } else {
+                try!(write!(f, "{} --> ", label));
+            }
+            x = nx;
+            offset += label.len() + 5;
+        }
+        for i in 0..self.level {
+            try!(write!(f, "lv{:<2} ", i+1));
+            offset = 5;
+            let mut x = self.forward[i];
             while x.is_some() {
-                try!(write!(f, "{} --> ", x.as_ref().map_or_else(String::new, |n| format!("{}", n.key))));
-                x = x.as_ref().map_or(None, |n| n.next.as_ref());
+                let label = x.resolve().map_or_else(String::new, |n| format!("{}", n.key));
+                let lv0_pos = offset_map.get(&x.resolve().unwrap().key).unwrap();
+                let padding = lv0_pos  - offset;
+
+                if offset == 5 { // fist item
+                    try!(write!(f, "{} ", label));
+                } else {
+                    try!(write!(f, "{}> {} ", iter::repeat('.').take(padding).collect::<String>(), label));
+                }
+                x = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i]);
+                offset = lv0_pos + label.len() + 3;
             }
             try!(writeln!(f, ""));
-            for i in 0..self.level {
-                try!(write!(f, "lv{} ", i+1));
-                let mut x = self.forward[i];
-                while x.is_some() {
-                    try!(write!(f, "{} ..> ",
-                           x.resolve().map_or_else(String::new, |n| format!("{}", n.key))));
-                    if x.resolve().map_or(false, |n| n.level() <= i) {
-                        break;
-                    }
-                    x = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i]);
-                }
-                try!(writeln!(f, ""));
-            }
-            Ok(())
         }
+        Ok(())
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /// Rawlink is a type like Option<T> but for holding a raw mutable pointer.
 impl<T> Rawlink<T> {
@@ -521,7 +429,7 @@ fn test_skip_list() {
     let mut rng = thread_rng();
 
     //let vals = vec![ -18130, 16865, -1813, 1686, -181, 168, -18, 16];
-    for i in 0 .. 10 {
+    for i in 0 .. 20 {
         let val = rng.gen_range(0, 2000);
         // let val = vals[i];
         println!("DEBUG {} insert => {}", i+1, val);
@@ -534,8 +442,10 @@ fn test_skip_list() {
     let v = 1000;
     list.insert(v, ());
     println!("list => {}", list);
-    println!("has(1000) => {}", list.contains_key(&1000));
+    assert!(list.contains_key(&1000));
+    assert!(!list.contains_key(&3000));
 
     list.remove(&v);
+    assert!(!list.contains_key(&1000));
     println!("list => {}", list);
 }
