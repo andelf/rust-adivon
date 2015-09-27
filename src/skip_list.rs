@@ -123,9 +123,12 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                 let nx = x.resolve_mut().map_or_else(Rawlink::none, |n| {
                     n.next.as_mut().map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
                 });
-                x = nx
+                x = nx;
             }
 
+        // current x.key is lower than key
+        // jump next
+        x = x.resolve_mut().map_or_else(Rawlink::none, |n| Rawlink::from(&mut n.next));
         x.resolve().map_or(None, |n| {
             if n.key == *key {
                 Some(&n.it)
@@ -285,7 +288,8 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
             }
 
 
-        if !x.resolve().map_or(false, |n| n.key == *key ) {
+        if x.resolve().map_or(true, |n| n.key != *key ) {
+            println!("not found");
             None
         } else if x.p == left.p && x.is_some() {
             println!("fuck equels");
@@ -514,7 +518,6 @@ fn test_skip_list() {
     for i in 0 .. 10 {
         let val = rng.gen_range(0, 2000);
         // let val = vals[i];
-        println!("list => {}", list);
         println!("DEBUG {} insert => {}", i+1, val);
         list.insert(val, ());
     }
@@ -522,10 +525,10 @@ fn test_skip_list() {
     println!("list => {}", list);
     println!("level => {}", list.level());
 
-    list.insert(20, ());
-    println!("has(20) => {}", list.contains_key(&20));
+    list.insert(1000, ());
     println!("list => {}", list);
+    println!("has(1000) => {}", list.contains_key(&1000));
 
-    list.remove(&20);
+    list.remove(&1000);
     println!("list => {}", list);
 }
