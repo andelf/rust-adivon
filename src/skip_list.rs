@@ -5,9 +5,8 @@ use std::iter;
 
 use rand::{thread_rng, Rng};
 
-// 32
-const DEFAULT_LEVEL: usize = 3;
 
+const DEFAULT_LEVEL: usize = 4;
 
 type Link<T> = Option<Box<T>>;
 
@@ -68,11 +67,13 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
         Rawlink::some(self)
     }
 
-    fn adjust_head(&mut self, new_level: usize) {
-        let diff = new_level - self.level();
-        if diff > 0 {
-            self.forward.append(&mut iter::repeat(Rawlink::none()).take(diff).collect())
+
+    fn promote_level(&mut self, new_level: usize, forward: Vec<Rawlink<Self>>) {
+        let level = self.level();
+        for i in level .. new_level {
+            self.forward.push(forward[i]);
         }
+        assert!(self.level() == new_level, "promote_level()");
     }
 
     fn insert(&mut self, key: Key, it: E, level: usize) {
@@ -136,9 +137,15 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
 
     fn adjust_head(&mut self, new_level: usize) {
         let diff = new_level - self.level;
-        if diff > 0 {
-            self.forward.append(&mut iter::repeat(Rawlink::none()).take(diff).collect())
+        let head_link  = Rawlink::from(&mut self.head);
+        let level = self.level();
+
+        for i in level .. new_level {
+            self.forward.push(head_link);
+            self.head.as_mut().map(|n| n.forward.push(Rawlink::none()));
         }
+        assert_eq!(self.forward.len(), new_level);
+        assert_eq!(self.head.as_ref().map_or(new_level, |n| n.level()), new_level);
     }
 
     // Due to head node must be of same level as List,
@@ -179,13 +186,17 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
             new_node.as_mut().map(|n| n.next = self.head.take());
             self.head = new_node;
         } else {
+            println!("crash0");
+
             let mut x = self.head.as_mut().map_or_else(Rawlink::none, |n| {
                 Rawlink::some(&mut **n)
             });
             // insert normally
             let mut update: Vec<Rawlink<SkipNode<Key,E>>> = self.forward[..new_level].to_vec();
             if new_level > 0 {  // need to insert skip pointers
+                println!("new level => {}", new_level);
                 x = update[new_level-1];
+                println!("crash2");
                 for i in (0..new_level).rev() {
                     while x.resolve().map_or(false, |n| n.forward[i].is_some()) &&
                         x.resolve().map_or(false, |n| n.forward[i].resolve().unwrap().key < key) {
@@ -198,6 +209,7 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
                 }
             }
 
+            println!("crash1");
             let mut y = x.resolve_mut().map_or_else(Rawlink::none, |n| {
                 Rawlink::some(&mut *n)
             });
@@ -279,12 +291,19 @@ impl<Key: PartialOrd + fmt::Debug, E: fmt::Debug> SkipList<Key,E> {
             println!("fuck equels");
             // this means remove head
             let head = self.head.take().unwrap();
-            // remove box
-            let head = *head;
+            let head = *head;   // unwrap Box
             let SkipNode { it, next, forward, .. } = head;
-            self.head = next;
-            self.forward = forward;
-            self.head.as_mut().map(|n| n.adjust_head(level));
+            let mut new_head = next;
+
+            // calculate new level, means, only head nodes
+            let new_level = forward.iter().take_while(|nx| nx.is_some()).count();
+
+            self.forward = iter::repeat(Rawlink::from(&mut new_head)).take(new_level).collect();
+            self.level = new_level;
+
+            new_head.as_mut().map(|n| n.promote_level(new_level, forward));
+            self.head = new_head;
+
             Some(it)
         } else {
             unimplemented!()
@@ -495,6 +514,7 @@ fn test_skip_list() {
     for i in 0 .. 10 {
         let val = rng.gen_range(0, 2000);
         // let val = vals[i];
+        println!("list => {}", list);
         println!("DEBUG {} insert => {}", i+1, val);
         list.insert(val, ());
     }
