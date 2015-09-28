@@ -1,9 +1,15 @@
-#![allow(unused_features)]
-#![feature(iter_arith, str_char, append)]
+#![feature(iter_arith)]
+#![allow(mutable_transmutes)]
+
+#![cfg_attr(test, feature(str_char))]
+#![cfg_attr(test, feature(plugin))]
+#![cfg_attr(test, plugin(quickcheck_macros))]
 
 extern crate vec_map;
 extern crate rand;
 
+#[cfg(test)]
+extern crate quickcheck;
 
 pub mod bag;
 pub mod stack;

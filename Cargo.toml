@@ -16,4 +16,7 @@ license = "MIT"
 [dependencies]
 rand = "*"
 vec_map = "*"
+
+[dev-dependencies]
 quickcheck = "*"
+quickcheck_macros = "*"
