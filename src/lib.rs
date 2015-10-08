@@ -27,5 +27,7 @@ pub mod rope;
 
 pub mod skip_list;
 
+pub mod rbtree;
+
 pub mod prelude;
 pub use prelude::*;
