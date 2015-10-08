@@ -2,10 +2,24 @@ use std::iter;
 use std::fmt;
 use std::mem;
 use std::cmp::Ordering;
-// FIXME: out implementation can't be used. :(
-// use super::super::stacks_and_queues::Queue;
-// use super::super::stacks_and_queues::resizing_array_queue::ResizingArrayQueue;
 use self::Color::*;
+
+
+fn max<T: PartialOrd + Copy>(a: T, b: T) -> T {
+    if a >= b {
+        a
+    } else {
+        b
+    }
+}
+
+// fn min<T: PartialOrd + Copy>(a: T, b: T) -> T {
+//     if a >= b {
+//         b
+//     } else {
+//         a
+//     }
+// }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
@@ -41,11 +55,7 @@ impl<K, V> Node<K, V> {
     fn depth(&self) -> usize {
         let lsz = self.left.as_ref().map_or(0, |n| n.depth());
         let rsz = self.right.as_ref().map_or(0, |n| n.depth());
-        if rsz >= lsz {
-            1 + rsz
-        } else {
-            1 + lsz
-        }
+        max(lsz, rsz) + 1
     }
 
     fn size(&self) -> usize {
@@ -117,8 +127,7 @@ fn is_red<K,V>(x: &Option<Box<Node<K,V>>>) -> bool {
     }
 }
 
-fn put<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>, key: K, val: V) -> Option<Box<Node<K,V>>> {
-    let mut x = x;
+fn put<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: K, val: V) -> Option<Box<Node<K,V>>> {
     if x.is_none() {
         return Some(Box::new(Node::new(key, val, Red)));
     }
@@ -150,12 +159,11 @@ fn put<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>, key: K, val: V) -> Option<Bo
 }
 
 
-fn delete<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,V>>> {
+fn delete<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,V>>> {
     if x.is_none() {
         return None;
     }
 
-    let mut x = x;
     match key.partial_cmp(&x.as_ref().unwrap().key).unwrap() {
         Ordering::Less => {
             let left = x.as_mut().unwrap().left.take();
@@ -296,8 +304,7 @@ fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Opti
 
 // delete_min helper
 // returns: top, deleted
-fn delete_min<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
-    let mut x = x;
+fn delete_min<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
     if x.is_none() {
         return (None, None);
     }
@@ -313,8 +320,7 @@ fn delete_min<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K
 
 // delete_max helper
 // returns: top, deleted
-fn delete_max<K: PartialOrd, V>(x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
-    let mut x = x;
+fn delete_max<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
     if x.is_none() {
         return (None, None);
     }

@@ -1,8 +1,8 @@
 [package]
 name = "adivon"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Shuyu Wang <andelf@gmail.com>"]
-description = "Data Structures of daily use: Graph, HashTable, PriorityQueue, Trie, SuffixTree, Rope, SplayTree, SkipList."
+description = "Data Structures of daily use: Graph, HashTable, PriorityQueue, Trie, SuffixTree, Rope, SplayTree, SkipList, RedBlackTree."
 homepage = "https://github.com/andelf/rust-adivon"
 repository = "https://github.com/andelf/rust-adivon.git"
 keywords = [
