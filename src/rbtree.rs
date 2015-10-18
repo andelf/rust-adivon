@@ -214,6 +214,10 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
         RedBlackBST { root: None }
     }
 
+    pub fn contains(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+
     pub fn get(&self, key: &K) -> Option<&V> {
         let mut x = self.root.as_ref();
         while x.is_some() {
