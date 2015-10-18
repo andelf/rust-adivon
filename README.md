@@ -18,3 +18,4 @@ Rust 实现的各种数据结构。
 - Rope
 - SkipList
 - RedBlackTree
+- KdTree
