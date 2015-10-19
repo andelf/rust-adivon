@@ -32,5 +32,7 @@ pub mod rbtree;
 pub mod primitive;
 pub mod kdtree;
 
+pub mod union_find;
+
 pub mod prelude;
 pub use prelude::*;
