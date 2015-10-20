@@ -58,7 +58,7 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
             key: key,
             it: it,
             next: None,
-            forward: iter::repeat(Rawlink::none()).take(level).collect(),
+            forward: vec![Rawlink::none(); level],
             level: level
         }
     }
@@ -90,7 +90,7 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
     pub fn new() -> SkipList<Key, E> {
         SkipList {
             head: None,
-            forward: iter::repeat(Rawlink::none()).take(DEFAULT_LEVEL).collect(),
+            forward: vec![Rawlink::none(); DEFAULT_LEVEL],
             level: DEFAULT_LEVEL,
             size: 0,
         }
@@ -266,7 +266,7 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
                 new_level = 1;  // level can't be lower than 1, or remove, find will fail
             }
 
-            self.forward = iter::repeat(Rawlink::from(&mut next)).take(new_level).collect();
+            self.forward = vec![Rawlink::from(&mut next); new_level];
             self.level = new_level;
 
             next.as_mut().map(|n| n.promote_level(new_level, forward));

@@ -19,3 +19,4 @@ Rust 实现的各种数据结构。
 - SkipList
 - RedBlackTree
 - KdTree
+- UnionFind
