@@ -10,11 +10,10 @@ use super::primitive::{Point2D, RectHV};
 
 
 pub trait Point: Copy {
-    type ValueType: Copy + PartialOrd = f64;
     // const DIMENSION: usize = 2;
 
     #[inline]
-    fn get(&self, d: usize) -> Self::ValueType;
+    fn get(&self, d: usize) -> f64;
 
     #[inline]
     fn dimension() -> usize { 2 }
@@ -65,7 +64,7 @@ impl<K: Point, V> Node<K, V> {
     }
 
     #[inline]
-    fn comparator_for_current_dim(&self) -> K::ValueType {
+    fn comparator_for_current_dim(&self) -> f64 {
         // let dim = self.depth % <K as Point>::dimension();
         self.key.get(self.depth % <K as Point>::dimension())
     }

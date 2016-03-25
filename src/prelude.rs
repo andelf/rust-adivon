@@ -13,3 +13,11 @@ pub use super::graph::Digraph;
 pub use super::priority_queue::{MinPQ, MaxPQ, IndexMinPQ};
 
 pub use super::tries::TernarySearchTrie;
+
+pub use super::rope::{Rope, IntoRope};
+
+pub use super::skip_list::SkipList;
+
+pub use super::rbtree::RedBlackBST;
+
+pub use super::union_find::UnionFind;

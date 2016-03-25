@@ -15,7 +15,6 @@ const DEFAULT_LEVEL: usize = 4;
 
 type Link<T> = Option<Box<T>>;
 
-#[allow(raw_pointer_derive)]
 #[derive(Debug)]
 struct Rawlink<T> {
     p: *mut T,

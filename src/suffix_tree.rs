@@ -23,7 +23,6 @@ fn min<T: PartialOrd + Copy>(x: T, y: T) -> T {
 
 
 
-#[allow(raw_pointer_derive)]
 #[derive(Debug)]
 struct Rawlink<T> {
     p: *mut T,
@@ -236,7 +235,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     fn length(&self, txt_idx: usize, pos: usize) -> usize {
         match *self {
             Internal { ref data, ref offsets, .. } => {
-                let offset = *offsets.get(&txt_idx).unwrap();
+                let offset = *offsets.get(txt_idx).unwrap();
                 min(pos - offset + 1, data.len())
             },
             Root { .. } => 0,
