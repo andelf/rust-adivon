@@ -9,7 +9,7 @@ keywords = [
   "algorithm",
   "book"
 ]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 
 [dependencies]
