@@ -204,9 +204,7 @@ impl<'a> SearchPaths<'a> {
     }
 
     pub fn path_to(&self, v: usize) -> Option<Vec<usize>> {
-        if !self.has_path_to(v) {
-            None
-        } else {
+        if self.has_path_to(v) {
             let mut path = Stack::new();
             let mut x = v;
             while !self.source.contains(x) {
@@ -215,6 +213,8 @@ impl<'a> SearchPaths<'a> {
             }
             path.push(x);
             Some(path.into_iter().collect())
+        } else {
+            None
         }
     }
 }

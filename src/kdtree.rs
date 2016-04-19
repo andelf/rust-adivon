@@ -150,12 +150,12 @@ fn delete<K: Point, V>(x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,
         Ordering::Less => {
             let left = x.as_mut().unwrap().left.take();
             x.as_mut().unwrap().left = delete(left, key);
-            return x;
+            x
         },
         Ordering::Greater => {
             let right = x.as_mut().unwrap().right.take();
             x.as_mut().unwrap().right = delete(right, key);
-            return x;
+            x
         },
         Ordering::Equal => {
             if x.as_ref().unwrap().right.is_none() {
@@ -245,7 +245,6 @@ impl<K: Point, V> KdTree<K, V> {
 
 impl<K: Point, V> KdTree<K, V> {
     pub fn keys<'a>(&'a self) -> ::std::vec::IntoIter<&'a K> {
-        let mut queue: Vec<&'a K> = Vec::new();
         fn inorder<'a, K: Point, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
@@ -254,6 +253,8 @@ impl<K: Point, V> KdTree<K, V> {
             queue.push(&x.unwrap().key);
             inorder(x.unwrap().right.as_ref(), queue);
         };
+
+        let mut queue: Vec<&'a K> = Vec::new();
         inorder(self.root.as_ref(), &mut queue);
         queue.into_iter()
     }
@@ -358,22 +359,20 @@ impl KdTree<Point2D, ()> {
                         }
                     }
                 }
-            } else {        // dim == 1: y
-                if p.y < x.unwrap().key.y {
-                    queue.enqueue(x.unwrap().left.as_ref());
-                    if x.unwrap().right.is_some() {
-                        let perpendicular_len = (p.x - x.unwrap().right.as_ref().unwrap().key.x).abs();
-                        if perpendicular_len < min_distance {
-                            queue.enqueue(x.unwrap().right.as_ref());
-                        }
+            } else if p.y < x.unwrap().key.y {
+                queue.enqueue(x.unwrap().left.as_ref());
+                if x.unwrap().right.is_some() {
+                    let perpendicular_len = (p.x - x.unwrap().right.as_ref().unwrap().key.x).abs();
+                    if perpendicular_len < min_distance {
+                        queue.enqueue(x.unwrap().right.as_ref());
                     }
-                } else {
-                    queue.enqueue(x.unwrap().right.as_ref());
-                    if x.unwrap().left.is_some() {
-                        let perpendicular_len = (p.x - x.unwrap().left.as_ref().unwrap().key.x).abs();
-                        if perpendicular_len < min_distance {
-                            queue.enqueue(x.unwrap().left.as_ref());
-                        }
+                }
+            } else {
+                queue.enqueue(x.unwrap().right.as_ref());
+                if x.unwrap().left.is_some() {
+                    let perpendicular_len = (p.x - x.unwrap().left.as_ref().unwrap().key.x).abs();
+                    if perpendicular_len < min_distance {
+                        queue.enqueue(x.unwrap().left.as_ref());
                     }
                 }
             }

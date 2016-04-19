@@ -99,16 +99,14 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
     fn dump(&self, depth: usize, f: &mut fmt::Formatter, symbol: char) {
         if depth == 0 {
             writeln!(f, "\n{:?}[{:?}]", self.key, self.val).unwrap();
+        } else if self.is_red () {
+            writeln!(f, "{}{}=={:?}[{:?}]",
+                     iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
+                     symbol, self.key, self.val).unwrap();
         } else {
-            if self.is_red () {
-                writeln!(f, "{}{}=={:?}[{:?}]",
-                         iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                         symbol, self.key, self.val).unwrap();
-            } else {
-                writeln!(f, "{}{}--{:?}[{:?}]",
-                         iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                         symbol, self.key, self.val).unwrap();
-            }
+            writeln!(f, "{}{}--{:?}[{:?}]",
+                     iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
+                     symbol, self.key, self.val).unwrap();
         }
         if self.left.is_some() {
             self.left.as_ref().unwrap().dump(depth + 1, f, '+');
@@ -168,12 +166,12 @@ fn delete<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: &K) -> Option<Bo
         Ordering::Less => {
             let left = x.as_mut().unwrap().left.take();
             x.as_mut().unwrap().left = delete(left, key);
-            return x;
+            x
         },
         Ordering::Greater => {
             let right = x.as_mut().unwrap().right.take();
             x.as_mut().unwrap().right = delete(right, key);
-            return x;
+            x
         },
         Ordering::Equal => {
             if x.as_ref().unwrap().right.is_none() {
@@ -277,9 +275,9 @@ fn floor<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Option
 
     let t = floor(x.unwrap().right.as_ref(), key);
     if t.is_some() {
-        return t
+        t
     } else {
-        return Some(x.unwrap())
+        Some(x.unwrap())
     }
 }
 
@@ -300,9 +298,9 @@ fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Opti
 
     let t = ceiling(x.unwrap().left.as_ref(), key);
     if t.is_some() {
-        return t
+        t
     } else {
-        return Some(x.unwrap())
+        Some(x.unwrap())
     }
 }
 
@@ -437,7 +435,6 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
 
 impl<K: PartialOrd, V> RedBlackBST<K, V> {
     pub fn keys<'a>(&'a self) -> ::std::vec::IntoIter<&'a K> {
-        let mut queue: Vec<&'a K> = Vec::new();
         fn inorder<'a, K, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
@@ -446,6 +443,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
             queue.push(&x.unwrap().key);
             inorder(x.unwrap().right.as_ref(), queue);
         };
+        let mut queue: Vec<&'a K> = Vec::new();
         inorder(self.root.as_ref(), &mut queue);
         queue.into_iter()
     }

@@ -122,8 +122,8 @@ fn test_rect() {
     assert!(!r1.intersects(r2));
 }
 
-/// represents a set of points in the unit square
-/// implemented using RedBlackBST
+/// Represents a set of points in the unit square
+/// implemented using `RedBlackBST`
 pub struct PointSet {
     pset: RedBlackBST<Point2D, ()>
 }

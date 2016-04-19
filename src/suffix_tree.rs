@@ -73,7 +73,7 @@ impl<T> Rawlink<T> {
     }
 }
 
-/// a node in SuffixTree
+/// A node in `SuffixTree`
 #[derive(Debug, Clone)]
 enum Node<'a, T: 'a> {
     Internal {

@@ -22,7 +22,7 @@ pub enum Rope {
 fn write_rope_to_string(rope: &Rope, s: &mut String) {
     match *rope {
         FlatCharVec { ref seq }                   => {
-            s.push_str(&seq.iter().map(Clone::clone).collect::<String>());
+            s.push_str(&seq.iter().cloned().collect::<String>());
         }
         Concatenation { ref left, ref right, .. } => {
             write_rope_to_string(left, s);
@@ -40,14 +40,15 @@ fn write_rope_to_string(rope: &Rope, s: &mut String) {
 }
 
 fn concatenate(left: Rope, right: Rope) -> Rope {
-    if left.len() == 0 {
+    const COMBINE_LENGTH: usize = 17;
+
+    if left.is_empty() {
         return right;
     }
-    if right.len() == 0 {
+    if right.is_empty() {
         return left;
     }
 
-    const COMBINE_LENGTH: usize = 17;
     let length = left.len() + right.len();
     if length < COMBINE_LENGTH {
         let mut lchs = left.into_chars();
@@ -60,10 +61,6 @@ fn concatenate(left: Rope, right: Rope) -> Rope {
 
 
 impl Rope {
-    pub fn from_str(s: &str) -> Rope {
-        Rope::from_vec(s.chars().collect())
-    }
-
     pub fn from_vec(seq: Vec<char>) -> Rope {
         Rope::FlatCharVec { seq: seq }
     }
@@ -71,17 +68,21 @@ impl Rope {
     pub fn len(&self) -> usize {
         match *self {
             FlatCharVec { ref seq }      => seq.len(),
-            Concatenation { length, .. } => length,
             Reverse { ref rope }         => rope.len(),
-            SubString { length, .. }     => length
+            SubString { length, .. } |
+            Concatenation { length, .. } => length
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn depth(&self) -> usize {
         match *self {
             FlatCharVec { .. }          => 0,
             Concatenation { depth, .. } => depth,
-            Reverse { ref rope }        => rope.depth(),
+            Reverse { ref rope } |
             SubString { ref rope, .. }  => rope.depth()
         }
     }
@@ -265,16 +266,29 @@ impl Rope {
     }
 }
 
+
+impl<'a> ::std::convert::From<&'a str> for Rope {
+    fn from(s: &'a str) -> Rope {
+        Rope::from_vec(s.chars().collect())
+    }
+}
+
+impl ::std::convert::From<String> for Rope {
+    fn from(s: String) -> Rope {
+        Rope::from_vec(s.chars().collect())
+    }
+}
+
 impl ops::Index<usize> for Rope {
     type Output = char;
-    fn index<'a>(&'a self, index: usize) -> &'a Self::Output {
+    fn index(&self, index: usize) -> &Self::Output {
         self.char_ref(index).unwrap()
     }
 }
 
 // FIXME: Rope should not be a mutable structure
 impl ops::IndexMut<usize> for Rope {
-    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut Self::Output {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.char_ref_mut(index).unwrap()
     }
 }
@@ -327,7 +341,7 @@ impl<'a> IntoRope for &'a str {
 
 #[test]
 fn test_rope() {
-    let s = Rope::from_str("Hello").append(' ').append("World").append('!');
+    let s = Rope::from("Hello").append(' ').append("World").append('!');
 
     println!("depth => {}", s.depth());
     println!("len => {}", s.len());
@@ -344,7 +358,7 @@ fn test_rope() {
 
 #[test]
 fn test_rope2() {
-    let s = Rope::from_str("Hello")
+    let s = Rope::from("Hello")
         .append(" abcdefghijklmnopqrstuvwxyz")
         .append(" World")
         .peek(|r| println!("D1 got => {}", r))
@@ -365,7 +379,7 @@ fn test_rope2() {
 #[test]
 fn test_rope_char_at() {
     // Note: if str to short, will be automaticlly flatten.
-    let s = Rope::from_str("zzzzzzzzzzzzzzzzzzzzHello !").insert(26, "Worldxxxxxxxxxxxxxxxxxxxx");
+    let s = Rope::from("zzzzzzzzzzzzzzzzzzzzHello !").insert(26, "Worldxxxxxxxxxxxxxxxxxxxx");
     // case 0 flat
     assert_eq!(s.char_ref(20), Some(&'H'));
     // assert_eq!(s[20], 'H');
@@ -383,7 +397,7 @@ fn test_rope_char_at() {
 
 #[test]
 fn test_rope_index_mut() {
-    let mut s = Rope::from_str("zzzzzzzzzzzzzzzzzzzzHello !")
+    let mut s = Rope::from("zzzzzzzzzzzzzzzzzzzzHello !")
         .insert(23, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
         .reverse()
         .delete(35, 40)

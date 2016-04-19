@@ -56,7 +56,7 @@ impl UnionFind {
 
 impl fmt::Display for UnionFind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for i in self.id.iter() {
+        for i in &self.id {
             try!(write!(f, "{} ", i));
         }
         Ok(())

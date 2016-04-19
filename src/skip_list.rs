@@ -69,8 +69,9 @@ impl<Key: PartialOrd, E> SkipNode<Key,E> {
 
     fn promote_level(&mut self, new_level: usize, forward: Vec<Rawlink<Self>>) {
         let level = self.level();
-        for i in level .. new_level {
-            self.forward.push(forward[i]);
+        // for i in level .. new_level
+        for item in forward.into_iter().take(new_level).skip(level) {
+            self.forward.push(item);
         }
         assert!(self.level() == new_level, "promote_level()");
     }
@@ -212,19 +213,19 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             let mut new_node = Some(Box::new(SkipNode::new(key, it, new_level)));
             let new_link = Rawlink::from(&mut new_node);
 
-            for i in 0..new_level {
+            for (i, item) in update.iter_mut().enumerate().take(new_level) {
                 new_node.as_mut().map(|n| {
-                    n.forward[i] = update[i].resolve_mut().map_or_else(Rawlink::none, |nx| nx.forward[i] );
+                    n.forward[i] = item.resolve_mut().map_or_else(Rawlink::none, |nx| nx.forward[i]);
                 });
                 // if update is empty, then update head node's link
-                update[i].resolve_mut().map_or_else(|| {
+                item.resolve_mut().map_or_else(|| {
                     self.forward[i] = new_link;
                 }, |prev| {
                     prev.forward[i] = new_link;
                 });
             }
 
-            // move in
+            // moves in
             y.resolve_mut().map(|n| {
                 new_node.as_mut().map(|new| new.next = n.next.take());
                 n.next = new_node;
@@ -296,6 +297,10 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
 
     pub fn len(&self) -> usize {
         self.size
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
