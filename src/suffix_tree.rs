@@ -24,7 +24,7 @@ fn min<T: PartialOrd + Copy>(x: T, y: T) -> T {
 
 
 #[derive(Debug)]
-struct Rawlink<T> {
+pub struct Rawlink<T> {
     p: *mut T,
 }
 
@@ -75,7 +75,7 @@ impl<T> Rawlink<T> {
 
 /// A node in `SuffixTree`
 #[derive(Debug, Clone)]
-enum Node<'a, T: 'a> {
+pub enum Node<'a, T: 'a> {
     Internal {
         /// the edge label
         data: &'a [T],

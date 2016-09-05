@@ -1,9 +1,9 @@
-#![feature(iter_arith, associated_type_defaults)]
+#![feature(associated_type_defaults)]
 #![allow(mutable_transmutes)]
 
-#![cfg_attr(test, feature(str_char))]
 #![cfg_attr(test, feature(plugin))]
-#![cfg_attr(test, plugin(quickcheck_macros))]
+// #![cfg_attr(test, feature(str_char))]
+// #![cfg_attr(test, plugin(quickcheck_macros))]
 
 extern crate vec_map;
 extern crate rand;

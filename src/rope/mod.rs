@@ -391,7 +391,7 @@ fn test_rope_char_at() {
     // reverse
     let s = s.reverse().insert(30, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").delete(35, 40);
     for i in 0 .. s.len() {
-        assert_eq!(s.to_string().char_at(i), s.char_ref(i).map(|&c| c).unwrap());
+        assert_eq!(s.to_string().chars().skip(i).next().unwrap(), s.char_ref(i).map(|&c| c).unwrap());
     }
 }
 
