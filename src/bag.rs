@@ -14,6 +14,7 @@ impl<T: Clone> Clone for Node<T> {
     }
 }
 
+/// A collection of objects.
 pub struct Bag<T> {
     s: Option<Box<Node<T>>>,
     n: usize
@@ -102,7 +103,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 }
 
 impl<T> Bag<T> {
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+    pub fn iter(&self) -> Iter<T> {
         Iter {
             node: self.s.as_ref(),
             nitem: self.n

@@ -1,9 +1,9 @@
-#![feature(associated_type_defaults)]
+#![feature(associated_type_defaults, plugin)]
 #![allow(mutable_transmutes)]
 
 #![cfg_attr(test, feature(plugin))]
-// #![cfg_attr(test, feature(str_char))]
-// #![cfg_attr(test, plugin(quickcheck_macros))]
+#![cfg_attr(feature = "dev", plugin(clippy))]
+#![cfg_attr(not(feature = "dev"), allow(unknown_lints))]
 
 extern crate vec_map;
 extern crate rand;

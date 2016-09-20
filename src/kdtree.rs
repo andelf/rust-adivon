@@ -8,10 +8,9 @@ use std::borrow::Borrow;
 use super::Queue;
 use super::primitive::{Point2D, RectHV};
 
-
+/// A generic multidimension point.
 pub trait Point: Copy {
     // const DIMENSION: usize = 2;
-
     #[inline]
     fn get(&self, d: usize) -> f64;
 
@@ -32,11 +31,13 @@ impl Point for Point2D {
     }
 }
 
+pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
+
 pub struct Node<K: Point, V> {
     pub key: K,
     pub val: V,
-    pub left:  Option<Box<Node<K, V>>>,
-    pub right: Option<Box<Node<K, V>>>,
+    pub left:  NodeCell<K, V>,
+    pub right: NodeCell<K, V>,
     pub depth: usize
 }
 
@@ -87,7 +88,7 @@ impl<K: Point + fmt::Debug, V: fmt::Debug> Node<K, V> {
     }
 }
 
-fn put<K: Point, V>(x: Option<Box<Node<K,V>>>, key: K, val: V, depth: usize) -> Option<Box<Node<K,V>>> {
+fn put<K: Point, V>(x: NodeCell<K, V>, key: K, val: V, depth: usize) -> NodeCell<K, V> {
     let mut x = x;
     if x.is_none() {
         return Some(Box::new(Node::new(key, val, depth)));
@@ -123,7 +124,7 @@ fn put<K: Point, V>(x: Option<Box<Node<K,V>>>, key: K, val: V, depth: usize) -> 
     x
 }
 
-fn delete_min<K: Point, V>(x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
+fn delete_min<K: Point, V>(x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeCell<K, V>) {
     let mut x = x;
     if x.is_none() {
         return (None, None);
@@ -138,7 +139,7 @@ fn delete_min<K: Point, V>(x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>
     }
 }
 
-fn delete<K: Point, V>(x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,V>>> {
+fn delete<K: Point, V>(x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
     if x.is_none() {
         return None;
     }
@@ -179,7 +180,7 @@ fn delete<K: Point, V>(x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,
 }
 
 pub struct KdTree<K: Point, V> {
-    pub root: Option<Box<Node<K, V>>>
+    pub root: NodeCell<K, V>
 }
 
 impl<K: Point, V> KdTree<K, V> {
@@ -244,7 +245,7 @@ impl<K: Point, V> KdTree<K, V> {
 
 
 impl<K: Point, V> KdTree<K, V> {
-    pub fn keys<'a>(&'a self) -> ::std::vec::IntoIter<&'a K> {
+    pub fn keys(&self) -> ::std::vec::IntoIter<&K> {
         fn inorder<'a, K: Point, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
@@ -254,7 +255,7 @@ impl<K: Point, V> KdTree<K, V> {
             inorder(x.unwrap().right.as_ref(), queue);
         };
 
-        let mut queue: Vec<&'a K> = Vec::new();
+        let mut queue = Vec::new();
         inorder(self.root.as_ref(), &mut queue);
         queue.into_iter()
     }

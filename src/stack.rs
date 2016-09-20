@@ -126,7 +126,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 }
 
 impl<T> Stack<T> {
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+    pub fn iter(&self) -> Iter<T> {
         Iter {
             node: self.s.as_ref()
         }

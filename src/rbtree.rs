@@ -27,6 +27,8 @@ pub enum Color {
     Black
 }
 
+pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
+
 pub struct Node<K, V> {
     pub key: K,
     pub val: V,
@@ -117,7 +119,7 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
     }
 }
 
-fn is_red<K,V>(x: &Option<Box<Node<K,V>>>) -> bool {
+fn is_red<K,V>(x: &NodeCell<K, V>) -> bool {
     if x.as_ref().is_none() {
         false
     } else {
@@ -125,7 +127,7 @@ fn is_red<K,V>(x: &Option<Box<Node<K,V>>>) -> bool {
     }
 }
 
-fn put<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: K, val: V) -> Option<Box<Node<K,V>>> {
+fn put<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: K, val: V) -> NodeCell<K, V> {
     if x.is_none() {
         return Some(Box::new(Node::new(key, val, Red)));
     }
@@ -157,7 +159,7 @@ fn put<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: K, val: V) -> Optio
 }
 
 
-fn delete<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,V>>> {
+fn delete<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
     if x.is_none() {
         return None;
     }
@@ -306,7 +308,7 @@ fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Opti
 
 // delete_min helper
 // returns: top, deleted
-fn delete_min<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
+fn delete_min<K: PartialOrd, V>(mut x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeCell<K, V>) {
     if x.is_none() {
         return (None, None);
     }
@@ -322,7 +324,7 @@ fn delete_min<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>) -> (Option<Box<No
 
 // delete_max helper
 // returns: top, deleted
-fn delete_max<K: PartialOrd, V>(mut x: Option<Box<Node<K,V>>>) -> (Option<Box<Node<K,V>>>, Option<Box<Node<K,V>>>) {
+fn delete_max<K: PartialOrd, V>(mut x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeCell<K, V>) {
     if x.is_none() {
         return (None, None);
     }
@@ -389,7 +391,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
 
     /// number of keys less than key
     pub fn rank(&self, key: &K) -> usize {
-        fn rank_helper<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> usize {
+        fn rank_helper<K: PartialOrd, V>(x: Option<&Box<Node<K,V>>>, key: &K) -> usize {
             if x.is_none() {
                 return 0;
             }
@@ -399,11 +401,11 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
                     rank_helper(x.unwrap().left.as_ref(), key)
                 },
                 Ordering::Greater => {
-                    1 + x.as_ref().unwrap().left.as_ref().map_or(0, |ref n| n.size()) +
+                    1 + x.as_ref().unwrap().left.as_ref().map_or(0, |n| n.size()) +
                         rank_helper(x.unwrap().right.as_ref(), key)
                 }
                 Ordering::Equal => {
-                    x.as_ref().unwrap().left.as_ref().map_or(0, |ref n| n.size())
+                    x.as_ref().unwrap().left.as_ref().map_or(0, |n| n.size())
                 }
             }
         }
@@ -434,7 +436,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
 
 
 impl<K: PartialOrd, V> RedBlackBST<K, V> {
-    pub fn keys<'a>(&'a self) -> ::std::vec::IntoIter<&'a K> {
+    pub fn keys(&self) -> ::std::vec::IntoIter<&K> {
         fn inorder<'a, K, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
@@ -443,7 +445,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
             queue.push(&x.unwrap().key);
             inorder(x.unwrap().right.as_ref(), queue);
         };
-        let mut queue: Vec<&'a K> = Vec::new();
+        let mut queue = Vec::new();
         inorder(self.root.as_ref(), &mut queue);
         queue.into_iter()
     }

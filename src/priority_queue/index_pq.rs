@@ -146,7 +146,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
         let mut k = k;
         while k > 1 && self.greater(k/2, k) {
             self.exch(k, k/2);
-            k = k/2;
+            k /= 2;
         }
     }
 

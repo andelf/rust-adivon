@@ -28,11 +28,6 @@ struct Node<T> {
 }
 
 impl<T> Node<T> {
-    /// work around for moved value
-    fn into_item_and_pointers(self) -> (T, Option<Box<Node<T>>>, Rawlink<Node<T>>) {
-        (self.item, self.next, self.prev)
-    }
-
     fn size(&self) -> usize {
         let mut p = self.next.as_ref();
         let mut sz = 1;
@@ -105,7 +100,7 @@ impl<T> Deque<T> {
     pub fn remove_first(&mut self) -> Option<T> {
         let old_first = self.first.take();
         if old_first.is_some() {
-            let (item, mut first, _) = old_first.unwrap().into_item_and_pointers();
+            let Node { item, next: mut first, .. } = *old_first.unwrap();
             // update new first's prev field
             first.as_mut().map(|v| v.prev = Rawlink::none());
             self.first = first;
@@ -120,7 +115,7 @@ impl<T> Deque<T> {
         if old_last.p.is_null() {
             return None;
         }
-        let last_ref_mut = unsafe { mem::transmute::<_, &mut Node<T>>(old_last.p) };
+        let last_ref_mut = unsafe { &mut *old_last.p };
 
         let last: Node<T> = mem::replace(last_ref_mut, unsafe { mem::zeroed() });
 
@@ -144,14 +139,14 @@ impl<T> Deque<T> {
         if self.last.p.is_null() {
             None
         } else {
-            let last_ref = unsafe { mem::transmute::<_, &mut Node<T>>(self.last.p) };
+            let last_ref = unsafe { &mut *self.last.p };
             Some(&last_ref.item)
         }
     }
 }
 
 impl<T> Deque<T> {
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+    pub fn iter(&self) -> Iter<T> {
         Iter {
             current: self.first.as_ref(),
             nelem: self.len()

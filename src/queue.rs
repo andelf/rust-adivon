@@ -76,7 +76,7 @@ impl<T> Queue<T> {
     }
 
     pub fn enqueue(&mut self, val: T) {
-        let ref old_last = self.last.take();
+        let old_last = &self.last.take();
         let mut last = Box::new(Node {
             val: val,
             next: None
@@ -175,7 +175,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 }
 
 impl<T> Queue<T> {
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+    pub fn iter(&self) -> Iter<T> {
         Iter {
             node: self.first.as_ref()
         }

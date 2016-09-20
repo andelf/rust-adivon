@@ -11,10 +11,15 @@ keywords = [
 ]
 license = "MIT OR Apache-2.0"
 
+[features]
+default = []
+dev = ["clippy"]
 
 [dependencies]
 rand = "0.3"
 vec_map = "0.6"
+# clippy = "*"
+clippy = {version = "*", optional = true}
 
 [dev-dependencies]
 quickcheck = "0.3"

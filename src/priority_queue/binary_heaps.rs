@@ -35,7 +35,7 @@ impl<Key: PartialOrd> MaxPQ<Key> {
         let mut k = k;
         while k > 1 && self.pq[k/2] < self.pq[k] {
             self.pq.swap(k, k/2);
-            k = k/2;
+            k /= 2;
         }
     }
 
@@ -150,7 +150,7 @@ impl<Key: PartialOrd> MinPQ<Key> {
         let mut k = k;
         while k > 1 && self.pq[k/2] > self.pq[k] {
             self.pq.swap(k, k/2);
-            k = k/2;
+            k /= 2;
         }
     }
 

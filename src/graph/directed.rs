@@ -75,7 +75,7 @@ impl Digraph {
     }
 
     pub fn adj(&self, v: usize) -> Vec<usize> {
-        self.adj[v].iter().map(|v| v.clone()).collect::<Vec<usize>>()
+        self.adj[v].iter().cloned().collect()
     }
 
     pub fn reverse(&self) -> Digraph {
@@ -93,31 +93,31 @@ impl Digraph {
         }
     }
 
-    pub fn dfs<'a>(&'a self, s: usize) -> SearchPaths<'a> {
+    pub fn dfs(&self, s: usize) -> SearchPaths {
         let mut path = SearchPaths::new(self, SearchSource::Single(s));
         path.dfs();
         path
     }
 
-    pub fn dfs_multi_source<'a, T: IntoIterator<Item=usize>>(&'a self, s: T) -> SearchPaths<'a> {
+    pub fn dfs_multi_source<T: IntoIterator<Item=usize>>(&self, s: T) -> SearchPaths {
         let mut path = SearchPaths::new(self, SearchSource::Multi(s.into_iter().collect()));
         path.dfs();
         path
     }
 
-    pub fn bfs<'a>(&'a self, s: usize) -> SearchPaths<'a> {
+    pub fn bfs(&self, s: usize) -> SearchPaths {
         let mut path = SearchPaths::new(self, SearchSource::Single(s));
         path.bfs();
         path
     }
 
-    pub fn reverse_dfs_postorder<'a>(&'a self) -> stack::IntoIter<usize> {
+    pub fn reverse_dfs_postorder(&self) -> stack::IntoIter<usize> {
         let mut dfo = DepthFirstOrder::new(self);
         dfo.init();
         dfo.reverse_post.into_iter()
     }
 
-    pub fn kosaraju_sharir_scc<'a>(&'a self) -> KosarajuSharirSCC<'a> {
+    pub fn kosaraju_sharir_scc(&self) -> KosarajuSharirSCC {
         KosarajuSharirSCC::new(self)
     }
 }
@@ -151,7 +151,7 @@ pub struct SearchPaths<'a> {
 }
 
 impl<'a> SearchPaths<'a> {
-    fn new<'b>(graph: &'b Digraph, source: SearchSource) -> SearchPaths<'b> {
+    fn new(graph: &Digraph, source: SearchSource) -> SearchPaths {
         let mut marked = iter::repeat(false).take(graph.v()).collect::<Vec<bool>>();
         let edge_to = iter::repeat(None).take(graph.v()).collect();
         for s in source.iter() {

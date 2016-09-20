@@ -128,6 +128,12 @@ pub struct PointSet {
     pset: RedBlackBST<Point2D, ()>
 }
 
+impl Default for PointSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PointSet {
     pub fn new() -> PointSet {
         PointSet { pset: RedBlackBST::new() }

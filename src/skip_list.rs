@@ -20,6 +20,12 @@ struct Rawlink<T> {
     p: *mut T,
 }
 
+impl<T> Clone for Rawlink<T> {
+    fn clone(&self) -> Self {
+        Rawlink { p: self.p }
+    }
+}
+
 impl<T> Copy for Rawlink<T> {}
 unsafe impl<T:Send> Send for Rawlink<T> {}
 unsafe impl<T:Sync> Sync for Rawlink<T> {}
@@ -403,15 +409,6 @@ impl<'a, Key, E> From<&'a mut Link<SkipNode<Key, E>>> for Rawlink<SkipNode<Key, 
         }
     }
 }
-
-
-impl<T> Clone for Rawlink<T> {
-    #[inline]
-    fn clone(&self) -> Rawlink<T> {
-        Rawlink{p: self.p}
-    }
-}
-
 
 
 #[test]

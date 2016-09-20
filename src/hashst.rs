@@ -86,7 +86,7 @@ impl<K: Hash + PartialEq, V> HashST<K, V> {
         {
             let mut x = self.st[i].as_mut();
             while x.is_some() {
-                if x.as_ref().map(|x| x.key == key).unwrap_or(false) {
+                if x.as_ref().map_or(false, |x| x.key == key) {
                     x.unwrap().val = val;
                     return;
                 } else {
@@ -99,7 +99,7 @@ impl<K: Hash + PartialEq, V> HashST<K, V> {
     }
 
     pub fn delete(&mut self, key: &K) {
-        let i = Self::hash(&key);
+        let i = Self::hash(key);
         self.st[i] = delete(self.st[i].take(), key);
     }
 
@@ -111,7 +111,7 @@ impl<K: Hash + PartialEq, V> HashST<K, V> {
 // TODO: how to implement IndexMut?
 impl<K: Hash + PartialEq, V> Index<K> for HashST<K, V> {
     type Output = V;
-    fn index<'a>(&'a self, index: K) -> &'a V {
+    fn index(&self, index: K) -> &V {
         self.get(index).expect("key not exists")
     }
 }

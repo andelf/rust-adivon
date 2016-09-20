@@ -10,9 +10,11 @@ fn compare<T: PartialOrd>(a: &T, b: &T) -> i32 {
     }
 }
 
+pub type NodeCell<K, V> = Option<Box<Node<K,V>>>;
+
 pub struct Node<K,V> {
-    left: Option<Box<Node<K,V>>>,
-    right: Option<Box<Node<K,V>>>,
+    left: NodeCell<K, V>,
+    right: NodeCell<K, V>,
     key: K,
     val: V
 }
@@ -46,7 +48,7 @@ impl<K: PartialOrd, V> Node<K, V> {
     }
 
     fn height(x: Option<&Box<Node<K,V>>>) -> usize {
-        if let Some(ref node) = x {
+        if let Some(node) = x {
             let lh = Node::height(node.left.as_ref());
             let rh = Node::height(node.left.as_ref());
             if lh <= rh { rh + 1 }
@@ -57,14 +59,14 @@ impl<K: PartialOrd, V> Node<K, V> {
     }
 
     fn size(x: Option<&Box<Node<K,V>>>) -> usize {
-        if let Some(ref node) = x {
+        if let Some(node) = x {
             1 + Node::size(node.left.as_ref()) + Node::size(node.right.as_ref())
         } else {
             0
         }
     }
 
-    fn splay(mut h: Option<Box<Node<K,V>>>, key: &K) -> Option<Box<Node<K,V>>> {
+    fn splay(mut h: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
         if h.is_none() {
             return None;
         }
@@ -132,14 +134,14 @@ impl<K: PartialOrd, V> Node<K, V> {
         h
     }
 
-    fn rotate_right(mut h: Option<Box<Node<K,V>>>) -> Option<Box<Node<K,V>>> {
+    fn rotate_right(mut h: NodeCell<K, V>) -> NodeCell<K, V> {
         let mut x = h.as_mut().map_or(None, |n| n.left.take());
         h.as_mut().map(|n| n.left = x.as_mut().map_or(None, |n| n.right.take()));
         x.as_mut().map(|n| n.right = h);
         x
     }
 
-    fn rotate_left(mut h: Option<Box<Node<K,V>>>) -> Option<Box<Node<K,V>>> {
+    fn rotate_left(mut h: NodeCell<K, V>) -> NodeCell<K, V> {
         let mut x = h.as_mut().map_or(None, |n| n.right.take());
         h.as_mut().map(|n| n.right = x.as_mut().map_or(None, |n| n.left.take()));
         x.as_mut().map(|n| n.left = h);
@@ -149,7 +151,7 @@ impl<K: PartialOrd, V> Node<K, V> {
 
 /// Splay tree. Supports splay-insert, -search, and -delete.
 pub struct SplayTree<K,V> {
-    root: Option<Box<Node<K,V>>>,
+    root: NodeCell<K, V>,
     // size: usize
 }
 
