@@ -86,14 +86,22 @@ impl<K: PartialOrd, V> Node<K, V> {
                 });
                 h = Node::rotate_right(h);
             } else if cmp2 > 0 {
-                h.as_mut().map(|n| {
+                // if let Some(ref mut n) = h.as_mut() {
+                //     if let Some(ref mut left) = n.left.as_mut() {
+                //         left.right = Node::splay(left.right.take(), key);
+                //         if left.right.is_some() {
+                //             n.left = Node::rotate_left(n.left.take())
+                //         }
+                //     }
+                // }
+                if let Some(ref mut n) = h.as_mut() {
                     if n.left.as_mut().map_or(false, |n| {
                         n.right = Node::splay(n.right.take(), key);
                         n.right.is_some()
                     }) {
                         n.left = Node::rotate_left(n.left.take());
                     }
-                });
+                }
             }
             // key not in tree
             if h.as_ref().unwrap().left.is_none() {

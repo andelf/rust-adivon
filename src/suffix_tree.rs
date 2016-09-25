@@ -117,12 +117,10 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     pub fn add_child(&mut self, x: Node<'a, T>) {
         match *self {
-            Root { ref mut children } => {
+            Root { ref mut children } |
+            Internal { ref mut children, .. }=> {
                 children.insert(x.head(), x);
-            },
-            Internal { ref mut children, .. } => {
-                children.insert(x.head(), x);
-            },
+            }
         }
     }
 
@@ -171,7 +169,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     pub fn terminates_any(&self) -> bool {
         match *self {
             Internal { ref terminates, .. } => {
-                terminates.len() != 0
+                !terminates.is_empty()
             }
             _ => panic!("calling terminates_any() on wrong node")
         }
@@ -203,7 +201,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     pub fn iter_children<'t>(&'t self) -> ::std::collections::btree_map::Values<'t, T, Node<'a, T>> {
         match *self {
-            Root { ref children } => children.values(),
+            Root { ref children } |
             Internal { ref children, .. } => children.values()
         }
     }
@@ -233,45 +231,37 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     }
 
     fn length(&self, txt_idx: usize, pos: usize) -> usize {
-        match *self {
-            Internal { ref data, ref offsets, .. } => {
+        if let Internal { data, ref offsets, .. } = *self {
                 let offset = *offsets.get(txt_idx).unwrap();
                 min(pos - offset + 1, data.len())
-            },
-            Root { .. } => 0,
+        } else {
+            0
         }
     }
 
     fn add_suffix_link(&mut self, slink: Rawlink<Node<'a, T>>) {
-        match *self {
-            Internal { ref mut suffix_link, .. } => {
-                *suffix_link = slink;
-            }
-            _ => {}
+        if let Internal { ref mut suffix_link, .. } = *self {
+            *suffix_link = slink;
         }
     }
 
     fn suffix_link(&self) -> Rawlink<Node<'a, T>> {
-        match *self {
-            Internal { suffix_link, .. } => {
-                suffix_link.clone()
-            }
-            _ => {
-                Rawlink::none()
-            }
+        if let Internal { suffix_link, .. } = *self {
+            suffix_link
+        } else {
+            Rawlink::none()
         }
     }
 
     pub fn mut_child_starts_with<'t>(&'t mut self, c: &T) -> Option<&'t mut Node<'a, T>> {
         match *self {
-            Root { ref mut children } => children.get_mut(c),
+            Root { ref mut children } |
             Internal { ref mut children, .. } => children.get_mut(c)
         }
     }
     pub fn child_starts_with(&self, c: &T) -> Option<&Node<'a, T>> {
         match *self {
-            Root { ref children } => children.get(c),
-            Internal { ref children, .. } => children.get(c)
+            Root { ref children } | Internal { ref children, .. } => children.get(c)
         }
     }
 }

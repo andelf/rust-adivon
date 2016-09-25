@@ -226,7 +226,7 @@ pub struct DepthFirstOrder<'a> {
 }
 
 impl<'a> DepthFirstOrder<'a> {
-    fn new<'b>(graph: &'b Digraph) -> DepthFirstOrder<'b> {
+    fn new(graph: &Digraph) -> DepthFirstOrder {
         let marked = iter::repeat(false).take(graph.v()).collect();
         DepthFirstOrder {
             graph: graph,
@@ -264,7 +264,7 @@ pub struct KosarajuSharirSCC<'a> {
 }
 
 impl<'a> KosarajuSharirSCC<'a> {
-    fn new<'b>(graph: &'b Digraph) -> KosarajuSharirSCC<'b> {
+    fn new(graph: &Digraph) -> KosarajuSharirSCC {
         let n = graph.v();
         let mut cc = KosarajuSharirSCC {
             graph: graph,
