@@ -1,6 +1,6 @@
 [package]
 name = "adivon"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Shuyu Wang <andelf@gmail.com>"]
 description = "Data Structures of daily use: Graph, HashTable, PriorityQueue, Trie, SuffixTree, Rope, SplayTree, SkipList, RedBlackTree."
 homepage = "https://github.com/andelf/rust-adivon"
