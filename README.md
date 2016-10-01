@@ -6,6 +6,8 @@
 
 Rust 实现的各种数据结构。
 
+[Document](https://docs.rs/adivon/)
+
 - Bag
 - Stack
 - Queue
