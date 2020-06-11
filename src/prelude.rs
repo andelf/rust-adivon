@@ -10,11 +10,11 @@ pub use super::graph::Graph;
 
 pub use super::graph::Digraph;
 
-pub use super::priority_queue::{MinPQ, MaxPQ, IndexMinPQ};
+pub use super::priority_queue::{IndexMinPQ, MaxPQ, MinPQ};
 
 pub use super::tries::TernarySearchTrie;
 
-pub use super::rope::{Rope, IntoRope};
+pub use super::rope::{IntoRope, Rope};
 
 pub use super::skip_list::SkipList;
 

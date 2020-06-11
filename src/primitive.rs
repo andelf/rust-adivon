@@ -1,14 +1,15 @@
+use super::rbtree::RedBlackBST;
+use rand::distributions::{Distribution, Standard};
+use rand::Rng;
+use std::borrow::Borrow;
+use std::f64;
 use std::fmt;
 use std::vec::IntoIter;
-use std::f64;
-use rand::{Rand, Rng};
-use std::borrow::Borrow;
-use super::rbtree::RedBlackBST;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Point2D {
     pub x: f64,
-    pub y: f64
+    pub y: f64,
 }
 
 impl Point2D {
@@ -31,11 +32,12 @@ impl fmt::Display for Point2D {
     }
 }
 
-impl Rand for Point2D {
-    fn rand<R: Rng>(rng: &mut R) -> Self {
+impl Distribution<Point2D> for Standard {
+    #[inline]
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point2D {
         Point2D {
-            x: rng.next_f64(),
-            y: rng.next_f64()
+            x: rng.gen(),
+            y: rng.gen(),
         }
     }
 }
@@ -49,19 +51,23 @@ fn test_point2d() {
     assert_eq!(p1.distance_to(p2), (2.0f64).sqrt());
 }
 
-
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 /// Implementation of 2D axis-aligned rectangle
 pub struct RectHV {
     pub xmin: f64,
     pub ymin: f64,
     pub xmax: f64,
-    pub ymax: f64
+    pub ymax: f64,
 }
 
 impl RectHV {
     pub fn new(xmin: f64, ymin: f64, xmax: f64, ymax: f64) -> RectHV {
-        RectHV { xmin: xmin, ymin: ymin, xmax: xmax, ymax: ymax }
+        RectHV {
+            xmin: xmin,
+            ymin: ymin,
+            xmax: xmax,
+            ymax: ymax,
+        }
     }
 
     pub fn width(&self) -> f64 {
@@ -74,15 +80,13 @@ impl RectHV {
 
     pub fn contains<T: Borrow<Point2D>>(&self, p: T) -> bool {
         let p = p.borrow();
-        p.x >= self.xmin && p.y >= self.ymin &&
-            p.x <= self.xmax && p.y <= self.ymax
+        p.x >= self.xmin && p.y >= self.ymin && p.x <= self.xmax && p.y <= self.ymax
     }
 
     /// does this axis-aligned rectangle intersect that one?
     pub fn intersects<T: Borrow<RectHV>>(&self, that: T) -> bool {
         let that = that.borrow();
-        self.xmax >= that.xmin && self.ymax >= that.ymin &&
-            that.xmax >= self.xmin && that.ymax >= self.ymin
+        self.xmax >= that.xmin && self.ymax >= that.ymin && that.xmax >= self.xmin && that.ymax >= self.ymin
     }
 
     /// distance from p to closest point on this axis-aligned rectangle
@@ -125,7 +129,7 @@ fn test_rect() {
 /// Represents a set of points in the unit square
 /// implemented using `RedBlackBST`
 pub struct PointSet {
-    pset: RedBlackBST<Point2D, ()>
+    pset: RedBlackBST<Point2D, ()>,
 }
 
 impl Default for PointSet {
@@ -136,7 +140,9 @@ impl Default for PointSet {
 
 impl PointSet {
     pub fn new() -> PointSet {
-        PointSet { pset: RedBlackBST::new() }
+        PointSet {
+            pset: RedBlackBST::new(),
+        }
     }
 
     pub fn size(&self) -> usize {
@@ -187,7 +193,7 @@ fn test_point_set() {
 
     let mut rng = thread_rng();
     let mut ps = PointSet::new();
-    for _ in 0 .. 100 {
+    for _ in 0..100 {
         ps.insert(rng.gen())
     }
     assert_eq!(ps.size(), 100);

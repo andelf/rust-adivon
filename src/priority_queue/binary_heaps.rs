@@ -3,25 +3,22 @@ const INITIAL_SIZE: usize = 1;
 /// Generic max priority queue implementation with a binary heap
 pub struct MaxPQ<Key> {
     pq: Vec<Option<Key>>,
-    n: usize
+    n: usize,
 }
 
 impl<Key: PartialOrd> MaxPQ<Key> {
     fn with_capacity(capacity: usize) -> MaxPQ<Key> {
         let mut pq = Vec::with_capacity(capacity + 1);
-        for _ in 0 .. capacity + 1 {
+        for _ in 0..capacity + 1 {
             pq.push(None);
         }
-        MaxPQ {
-            pq: pq,
-            n: 0
-        }
+        MaxPQ { pq: pq, n: 0 }
     }
 
     fn resize(&mut self, capacity: usize) {
         assert!(capacity > self.n);
         let mut temp = Vec::with_capacity(capacity);
-        for i in 0 .. capacity {
+        for i in 0..capacity {
             if i >= 1 && i <= self.n {
                 temp.push(self.pq[i].take());
             } else {
@@ -33,17 +30,17 @@ impl<Key: PartialOrd> MaxPQ<Key> {
 
     fn swim(&mut self, k: usize) {
         let mut k = k;
-        while k > 1 && self.pq[k/2] < self.pq[k] {
-            self.pq.swap(k, k/2);
+        while k > 1 && self.pq[k / 2] < self.pq[k] {
+            self.pq.swap(k, k / 2);
             k /= 2;
         }
     }
 
     fn sink(&mut self, k: usize) {
         let mut k = k;
-        while 2*k <= self.n {
-            let mut j = 2*k;
-            if j < self.n && self.pq[j] < self.pq[j+1] {
+        while 2 * k <= self.n {
+            let mut j = 2 * k;
+            if j < self.n && self.pq[j] < self.pq[j + 1] {
                 j += 1;
             }
             if self.pq[k] >= self.pq[j] {
@@ -113,30 +110,25 @@ impl<Key: PartialOrd> MaxPQ<Key> {
     }
 }
 
-
 /// Generic min priority queue implementation with a binary heap
 pub struct MinPQ<Key> {
     pq: Vec<Option<Key>>,
-    n: usize
+    n: usize,
 }
-
 
 impl<Key: PartialOrd> MinPQ<Key> {
     fn with_capacity(capacity: usize) -> MinPQ<Key> {
         let mut pq = Vec::with_capacity(capacity + 1);
-        for _ in 0 .. capacity + 1 {
+        for _ in 0..capacity + 1 {
             pq.push(None);
         }
-        MinPQ {
-            pq: pq,
-            n: 0
-        }
+        MinPQ { pq: pq, n: 0 }
     }
 
     fn resize(&mut self, capacity: usize) {
         assert!(capacity > self.n);
         let mut temp = Vec::with_capacity(capacity);
-        for i in 0 .. capacity {
+        for i in 0..capacity {
             if i >= 1 && i <= self.n {
                 temp.push(self.pq[i].take());
             } else {
@@ -148,17 +140,17 @@ impl<Key: PartialOrd> MinPQ<Key> {
 
     fn swim(&mut self, k: usize) {
         let mut k = k;
-        while k > 1 && self.pq[k/2] > self.pq[k] {
-            self.pq.swap(k, k/2);
+        while k > 1 && self.pq[k / 2] > self.pq[k] {
+            self.pq.swap(k, k / 2);
             k /= 2;
         }
     }
 
     fn sink(&mut self, k: usize) {
         let mut k = k;
-        while 2*k <= self.n {
-            let mut j = 2*k;
-            if j < self.n && self.pq[j] > self.pq[j+1] {
+        while 2 * k <= self.n {
+            let mut j = 2 * k;
+            if j < self.n && self.pq[j] > self.pq[j + 1] {
                 j += 1;
             }
             if self.pq[k] <= self.pq[j] {
@@ -227,7 +219,6 @@ impl<Key: PartialOrd> MinPQ<Key> {
     }
 }
 
-
 #[test]
 fn test_binary_heap_min_priority_queue() {
     let mut pq: MinPQ<char> = MinPQ::new();
@@ -254,7 +245,6 @@ fn test_binary_heap_min_priority_queue() {
 
     assert_eq!(pq.size(), 6);
 }
-
 
 #[test]
 fn test_binary_heap_max_priority_queue() {

@@ -1,21 +1,22 @@
-use std::iter;
-use std::fmt;
-use std::f64;
-use std::vec::IntoIter;
-use std::cmp::Ordering;
 use std::borrow::Borrow;
+use std::cmp::Ordering;
+use std::f64;
+use std::fmt;
+use std::iter;
+use std::vec::IntoIter;
 
-use super::Queue;
 use super::primitive::{Point2D, RectHV};
+use super::Queue;
 
 /// A generic multidimension point.
 pub trait Point: Copy {
     // const DIMENSION: usize = 2;
-    #[inline]
     fn get(&self, d: usize) -> f64;
 
     #[inline]
-    fn dimension() -> usize { 2 }
+    fn dimension() -> usize {
+        2
+    }
 }
 
 impl Point for Point2D {
@@ -36,9 +37,9 @@ pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
 pub struct Node<K: Point, V> {
     pub key: K,
     pub val: V,
-    pub left:  NodeCell<K, V>,
+    pub left: NodeCell<K, V>,
     pub right: NodeCell<K, V>,
-    pub depth: usize
+    pub depth: usize,
 }
 
 impl<K: Point, V> Node<K, V> {
@@ -49,7 +50,7 @@ impl<K: Point, V> Node<K, V> {
             left: None,
             right: None,
             // depth use (depth % k)-th dimension
-            depth: depth
+            depth: depth,
         }
     }
 
@@ -76,8 +77,15 @@ impl<K: Point + fmt::Debug, V: fmt::Debug> Node<K, V> {
         if depth == 0 {
             writeln!(f, "\n{:?}[{:?}]", self.key, self.val).unwrap();
         } else {
-            writeln!(f, "{}{}--{:?}[{:?}]", iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                     symbol, self.key, self.val).unwrap();
+            writeln!(
+                f,
+                "{}{}--{:?}[{:?}]",
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
+                symbol,
+                self.key,
+                self.val
+            )
+            .unwrap();
         }
         if self.left.is_some() {
             self.left.as_ref().unwrap().dump(depth + 1, f, '+');
@@ -105,12 +113,12 @@ fn put<K: Point, V>(x: NodeCell<K, V>, key: K, val: V, depth: usize) -> NodeCell
                 let left = x.as_mut().unwrap().left.take();
                 x.as_mut().unwrap().left = put(left, key, val, depth + 1);
                 break;
-            },
+            }
             Ordering::Greater => {
                 let right = x.as_mut().unwrap().right.take();
                 x.as_mut().unwrap().right = put(right, key, val, depth + 1);
                 break;
-            },
+            }
             // when current dimension is equal, compare next non-equal dimension
             Ordering::Equal => {
                 dim = (dim + 1) % dimension;
@@ -130,7 +138,7 @@ fn delete_min<K: Point, V>(x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeCell<K, V>
         return (None, None);
     }
     match x.as_mut().unwrap().left.take() {
-        None           => (x.as_mut().unwrap().right.take(), x),
+        None => (x.as_mut().unwrap().right.take(), x),
         left @ Some(_) => {
             let (t, deleted) = delete_min(left);
             x.as_mut().unwrap().left = t;
@@ -152,12 +160,12 @@ fn delete<K: Point, V>(x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
             let left = x.as_mut().unwrap().left.take();
             x.as_mut().unwrap().left = delete(left, key);
             x
-        },
+        }
         Ordering::Greater => {
             let right = x.as_mut().unwrap().right.take();
             x.as_mut().unwrap().right = delete(right, key);
             x
-        },
+        }
         Ordering::Equal => {
             if x.as_ref().unwrap().right.is_none() {
                 return x.as_mut().unwrap().left.take();
@@ -180,7 +188,7 @@ fn delete<K: Point, V>(x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
 }
 
 pub struct KdTree<K: Point, V> {
-    pub root: NodeCell<K, V>
+    pub root: NodeCell<K, V>,
 }
 
 impl<K: Point, V> KdTree<K, V> {
@@ -204,15 +212,15 @@ impl<K: Point, V> KdTree<K, V> {
                     Ordering::Less => {
                         x = x.unwrap().left.as_ref();
                         break;
-                    },
+                    }
                     Ordering::Greater => {
                         x = x.unwrap().right.as_ref();
                         break;
-                    },
-                    Ordering::Equal  => {
+                    }
+                    Ordering::Equal => {
                         dim = (dim + 1) % dimension;
                         if dim == current_dim {
-                            return Some(&x.unwrap().val)
+                            return Some(&x.unwrap().val);
                         }
                     }
                 }
@@ -243,10 +251,9 @@ impl<K: Point, V> KdTree<K, V> {
     }
 }
 
-
 impl<K: Point, V> KdTree<K, V> {
     pub fn keys(&self) -> ::std::vec::IntoIter<&K> {
-        fn inorder<'a, K: Point, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
+        fn inorder<'a, K: Point, V>(x: Option<&'a Box<Node<K, V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
             }
@@ -296,7 +303,8 @@ impl KdTree<Point2D, ()> {
                 if rect.xmax > x.as_ref().unwrap().comparator_for_current_dim() {
                     stack.push(x.unwrap().right.as_ref())
                 }
-            } else {        // dim == 1: y
+            } else {
+                // dim == 1: y
                 if rect.ymin < x.as_ref().unwrap().comparator_for_current_dim() {
                     stack.push(x.unwrap().left.as_ref())
                 }
@@ -351,7 +359,8 @@ impl KdTree<Point2D, ()> {
                             queue.enqueue(x.unwrap().right.as_ref());
                         }
                     }
-                } else {        // p in right
+                } else {
+                    // p in right
                     queue.enqueue(x.unwrap().right.as_ref());
                     if x.unwrap().left.is_some() {
                         let perpendicular_len = (p.y - x.unwrap().left.as_ref().unwrap().key.y).abs();
@@ -379,10 +388,8 @@ impl KdTree<Point2D, ()> {
             }
         }
         result
-
     }
 }
-
 
 impl<K: Point + fmt::Debug, V: fmt::Debug> fmt::Debug for KdTree<K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -415,7 +422,6 @@ fn test_kd_tree_with_point_2d() {
     assert_eq!(&Point2D::new(0.2, 0.3), t.nearest(Point2D::new(0.1, 0.1)).unwrap());
     assert_eq!(&Point2D::new(0.9, 0.6), t.nearest(Point2D::new(0.9, 0.8)).unwrap());
 }
-
 
 #[test]
 fn test_kd_tree_with_point_2d_duplicated() {

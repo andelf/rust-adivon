@@ -9,7 +9,7 @@ impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
         Node {
             val: self.val.clone(),
-            next: self.next.clone()
+            next: self.next.clone(),
         }
     }
 }
@@ -17,21 +17,21 @@ impl<T: Clone> Clone for Node<T> {
 /// A collection of objects.
 pub struct Bag<T> {
     s: Option<Box<Node<T>>>,
-    n: usize
+    n: usize,
 }
 
 impl<T: Clone> Clone for Bag<T> {
     fn clone(&self) -> Self {
         Bag {
             s: self.s.clone(),
-            n: self.n
+            n: self.n,
         }
     }
 }
 
 fn write_node_to_formatter<T: fmt::Debug>(f: &mut fmt::Formatter, x: Option<&Box<Node<T>>>) -> fmt::Result {
     if let Some(node) = x {
-        try!(write!(f, "{:?}, ", node.val));
+        write!(f, "{:?}, ", node.val)?;
         write_node_to_formatter(f, node.next.as_ref())
     } else {
         Ok(())
@@ -40,19 +40,15 @@ fn write_node_to_formatter<T: fmt::Debug>(f: &mut fmt::Formatter, x: Option<&Box
 
 impl<T: fmt::Debug> fmt::Debug for Bag<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "["));
-        try!(write_node_to_formatter(f, self.s.as_ref()));
+        write!(f, "[")?;
+        write_node_to_formatter(f, self.s.as_ref())?;
         write!(f, "]")
     }
 }
 
-
 impl<T> Bag<T> {
     pub fn new() -> Bag<T> {
-        Bag {
-            s: None,
-            n: 0
-        }
+        Bag { s: None, n: 0 }
     }
 
     pub fn add(&mut self, val: T) {
@@ -70,10 +66,12 @@ impl<T> Bag<T> {
     }
 }
 
-
-pub struct Iter<'a, T> where T: 'a {
+pub struct Iter<'a, T>
+where
+    T: 'a,
+{
     node: Option<&'a Box<Node<T>>>,
-    nitem: usize
+    nitem: usize,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -106,7 +104,7 @@ impl<T> Bag<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
             node: self.s.as_ref(),
-            nitem: self.n
+            nitem: self.n,
         }
     }
 }

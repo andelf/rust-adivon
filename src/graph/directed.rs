@@ -1,14 +1,14 @@
-use std::iter;
 use super::super::bag::Bag;
+use super::super::queue::Queue;
 use super::super::stack;
 use super::super::stack::Stack;
-use super::super::queue::Queue;
+use std::iter;
 
 #[derive(Clone, Debug)]
 pub struct Digraph {
     v: usize,
     e: usize,
-    adj: Vec<Bag<usize>>
+    adj: Vec<Bag<usize>>,
 }
 
 impl Digraph {
@@ -16,7 +16,7 @@ impl Digraph {
         Digraph {
             v: v,
             e: 0,
-            adj: iter::repeat(Bag::<usize>::new()).take(v).collect()
+            adj: iter::repeat(Bag::<usize>::new()).take(v).collect(),
         }
     }
 
@@ -47,7 +47,7 @@ impl Digraph {
 
     pub fn number_of_self_loops(&self) -> usize {
         let mut count = 0;
-        for v in 0 .. self.v() {
+        for v in 0..self.v() {
             for w in self.adj(v) {
                 if v == w {
                     count += 1;
@@ -61,7 +61,7 @@ impl Digraph {
         let mut dot = String::new();
 
         dot.push_str("digraph G {\n");
-        for i in 0 .. self.v {
+        for i in 0..self.v {
             dot.push_str(&format!("  {};\n", i));
         }
 
@@ -81,7 +81,7 @@ impl Digraph {
     pub fn reverse(&self) -> Digraph {
         let v = self.v;
         let mut adj = iter::repeat(Bag::new()).take(v).collect::<Vec<Bag<usize>>>();
-        for s in 0 .. v {
+        for s in 0..v {
             for e in self.adj(s) {
                 adj[e].add(s);
             }
@@ -89,7 +89,7 @@ impl Digraph {
         Digraph {
             v: v,
             e: self.e,
-            adj: adj
+            adj: adj,
         }
     }
 
@@ -99,7 +99,7 @@ impl Digraph {
         path
     }
 
-    pub fn dfs_multi_source<T: IntoIterator<Item=usize>>(&self, s: T) -> SearchPaths {
+    pub fn dfs_multi_source<T: IntoIterator<Item = usize>>(&self, s: T) -> SearchPaths {
         let mut path = SearchPaths::new(self, SearchSource::Multi(s.into_iter().collect()));
         path.dfs();
         path
@@ -124,21 +124,21 @@ impl Digraph {
 
 pub enum SearchSource {
     Single(usize),
-    Multi(Vec<usize>)
+    Multi(Vec<usize>),
 }
 
 impl SearchSource {
     fn iter(&self) -> ::std::vec::IntoIter<usize> {
         match *self {
             SearchSource::Single(ref i) => vec![*i].into_iter(),
-            SearchSource::Multi(ref vs) => vs.clone().into_iter()
+            SearchSource::Multi(ref vs) => vs.clone().into_iter(),
         }
     }
 
     fn contains(&self, v: usize) -> bool {
         match *self {
             SearchSource::Single(ref i) => *i == v,
-            SearchSource::Multi(ref vs) => vs.contains(&v)
+            SearchSource::Multi(ref vs) => vs.contains(&v),
         }
     }
 }
@@ -147,7 +147,7 @@ pub struct SearchPaths<'a> {
     graph: &'a Digraph,
     marked: Vec<bool>,
     edge_to: Vec<Option<usize>>,
-    source: SearchSource
+    source: SearchSource,
 }
 
 impl<'a> SearchPaths<'a> {
@@ -162,7 +162,7 @@ impl<'a> SearchPaths<'a> {
             graph: graph,
             marked: marked,
             edge_to: edge_to,
-            source: source
+            source: source,
         }
     }
 
@@ -222,7 +222,7 @@ impl<'a> SearchPaths<'a> {
 pub struct DepthFirstOrder<'a> {
     graph: &'a Digraph,
     marked: Vec<bool>,
-    reverse_post: Stack<usize>
+    reverse_post: Stack<usize>,
 }
 
 impl<'a> DepthFirstOrder<'a> {
@@ -231,12 +231,12 @@ impl<'a> DepthFirstOrder<'a> {
         DepthFirstOrder {
             graph: graph,
             marked: marked,
-            reverse_post: Stack::new()
+            reverse_post: Stack::new(),
         }
     }
 
     fn init(&mut self) {
-        for v in 0 .. self.graph.v() {
+        for v in 0..self.graph.v() {
             if !self.marked[v] {
                 self.dfs(v)
             }
@@ -270,7 +270,7 @@ impl<'a> KosarajuSharirSCC<'a> {
             graph: graph,
             marked: iter::repeat(false).take(n).collect(),
             id: iter::repeat(None).take(n).collect(),
-            count: 0
+            count: 0,
         };
         cc.init();
         cc
@@ -307,7 +307,6 @@ impl<'a> KosarajuSharirSCC<'a> {
         }
     }
 }
-
 
 #[test]
 fn test_digraph_visit() {
@@ -347,8 +346,10 @@ fn test_digraph_visit() {
     assert_eq!(format!("{:?}", g.bfs(0).path_to(3).unwrap()), "[0, 5, 4, 3]");
 
     // FIXME: bad test case
-    assert_eq!(format!("{:?}", g.dfs_multi_source(vec![0, 4]).path_to(3).unwrap()),
-               "[4, 2, 3]");
+    assert_eq!(
+        format!("{:?}", g.dfs_multi_source(vec![0, 4]).path_to(3).unwrap()),
+        "[4, 2, 3]"
+    );
 
     let scc = g.kosaraju_sharir_scc();
 
@@ -356,7 +357,6 @@ fn test_digraph_visit() {
     assert!(scc.connected(9, 12));
     assert!(!scc.connected(6, 7));
 }
-
 
 #[test]
 fn test_digraph() {
@@ -388,8 +388,8 @@ fn test_digraph() {
 #[test]
 fn test_digraph_functions() {
     let mut g = Digraph::new(5);
-    for i in 0 .. 5 {
-        for j in 0 .. 5 {
+    for i in 0..5 {
+        for j in 0..5 {
             g.add_edge(i, j);
         }
     }

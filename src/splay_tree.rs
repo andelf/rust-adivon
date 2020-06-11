@@ -5,18 +5,18 @@ use std::iter;
 fn compare<T: PartialOrd>(a: &T, b: &T) -> i32 {
     match a.partial_cmp(b).unwrap() {
         cmp::Ordering::Greater => 1,
-        cmp::Ordering::Less    => -1,
-        _                      => 0
+        cmp::Ordering::Less => -1,
+        _ => 0,
     }
 }
 
-pub type NodeCell<K, V> = Option<Box<Node<K,V>>>;
+pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
 
-pub struct Node<K,V> {
+pub struct Node<K, V> {
     left: NodeCell<K, V>,
     right: NodeCell<K, V>,
     key: K,
-    val: V
+    val: V,
 }
 
 impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
@@ -24,9 +24,15 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
         if depth == 0 {
             writeln!(f, "\n{:?}[{:?}]", self.key, self.val).unwrap();
         } else {
-            writeln!(f, "{}{}--{:?}[{:?}]",
-                     iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                     symbol, self.key, self.val).unwrap();
+            writeln!(
+                f,
+                "{}{}--{:?}[{:?}]",
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
+                symbol,
+                self.key,
+                self.val
+            )
+            .unwrap();
         }
         if self.left.is_some() {
             self.left.as_ref().unwrap().dump(depth + 1, f, '+');
@@ -38,27 +44,30 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
 }
 
 impl<K: PartialOrd, V> Node<K, V> {
-    fn new(key: K, val: V) -> Node<K,V> {
+    fn new(key: K, val: V) -> Node<K, V> {
         Node {
             left: None,
             right: None,
             key: key,
-            val: val
+            val: val,
         }
     }
 
-    fn height(x: Option<&Box<Node<K,V>>>) -> usize {
+    fn height(x: Option<&Box<Node<K, V>>>) -> usize {
         if let Some(node) = x {
             let lh = Node::height(node.left.as_ref());
             let rh = Node::height(node.left.as_ref());
-            if lh <= rh { rh + 1 }
-            else { lh + 1 }
+            if lh <= rh {
+                rh + 1
+            } else {
+                lh + 1
+            }
         } else {
             0
         }
     }
 
-    fn size(x: Option<&Box<Node<K,V>>>) -> usize {
+    fn size(x: Option<&Box<Node<K, V>>>) -> usize {
         if let Some(node) = x {
             1 + Node::size(node.left.as_ref()) + Node::size(node.right.as_ref())
         } else {
@@ -158,7 +167,7 @@ impl<K: PartialOrd, V> Node<K, V> {
 }
 
 /// Splay tree. Supports splay-insert, -search, and -delete.
-pub struct SplayTree<K,V> {
+pub struct SplayTree<K, V> {
     root: NodeCell<K, V>,
     // size: usize
 }
@@ -174,8 +183,8 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for SplayTree<K, V> {
     }
 }
 
-impl<K: PartialOrd, V> SplayTree<K,V> {
-    pub fn new() -> SplayTree<K,V> {
+impl<K: PartialOrd, V> SplayTree<K, V> {
+    pub fn new() -> SplayTree<K, V> {
         SplayTree {
             root: None,
             // size: 0
@@ -201,13 +210,9 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
     // get() needs to update tree structure
     pub fn get(&mut self, key: &K) -> Option<&V> {
         self.root = Node::splay(self.root.take(), key);
-        self.root.as_ref().map_or(None, |n| {
-            if n.key == *key {
-                Some(&n.val)
-            } else {
-                None
-            }
-        })
+        self.root
+            .as_ref()
+            .map_or(None, |n| if n.key == *key { Some(&n.val) } else { None })
     }
 
     pub fn contains_key(&mut self, key: &K) -> bool {
@@ -216,13 +221,9 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
 
     pub fn get_mut<'t>(&'t mut self, key: &K) -> Option<&'t mut V> {
         self.root = Node::splay(self.root.take(), key);
-        self.root.as_mut().map_or(None, |n| {
-            if n.key == *key {
-                Some(&mut n.val)
-            } else {
-                None
-            }
-        })
+        self.root
+            .as_mut()
+            .map_or(None, |n| if n.key == *key { Some(&mut n.val) } else { None })
     }
 
     /// Splay tree insertion.
@@ -245,7 +246,7 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
             n.right = root.as_mut().unwrap().right.take();
             n.left = root;
             self.root = Some(Box::new(n));
-        } else if cmp == 0{
+        } else if cmp == 0 {
             root.as_mut().map(|n| n.val = val);
             self.root = root;
         } else {
@@ -276,7 +277,6 @@ impl<K: PartialOrd, V> SplayTree<K,V> {
         }
     }
 }
-
 
 #[test]
 fn test_splay_tree() {

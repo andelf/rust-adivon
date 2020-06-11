@@ -2,7 +2,7 @@ use std::mem;
 use std::ptr;
 
 struct Rawlink<T> {
-    p: *mut T
+    p: *mut T,
 }
 
 impl<T> Rawlink<T> {
@@ -21,7 +21,7 @@ impl<T> Rawlink<T> {
 
 struct Node<T> {
     val: T,
-    next: Option<Box<Node<T>>>
+    next: Option<Box<Node<T>>>,
 }
 
 impl<T> Node<T> {
@@ -39,14 +39,14 @@ impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
         Node {
             val: self.val.clone(),
-            next: self.next.clone()
+            next: self.next.clone(),
         }
     }
 }
 
 pub struct Queue<T> {
     first: Option<Box<Node<T>>>,
-    last: Rawlink<Node<T>>
+    last: Rawlink<Node<T>>,
 }
 
 impl<T: Clone> Clone for Queue<T> {
@@ -61,14 +61,17 @@ impl<T: Clone> Clone for Queue<T> {
         };
         Queue {
             first: first,
-            last: last
+            last: last,
         }
     }
 }
 
 impl<T> Queue<T> {
     pub fn new() -> Queue<T> {
-        Queue { first: None, last: Rawlink::none() }
+        Queue {
+            first: None,
+            last: Rawlink::none(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -77,17 +80,12 @@ impl<T> Queue<T> {
 
     pub fn enqueue(&mut self, val: T) {
         let old_last = &self.last.take();
-        let mut last = Box::new(Node {
-            val: val,
-            next: None
-        });
+        let mut last = Box::new(Node { val: val, next: None });
         self.last = Rawlink::some(&mut last);
         if self.is_empty() {
             self.first = Some(last)
         } else {
-            unsafe {
-                (*old_last.p).next = Some(last)
-            }
+            unsafe { (*old_last.p).next = Some(last) }
         }
     }
 
@@ -118,7 +116,7 @@ impl<T> Queue<T> {
 }
 
 pub struct IntoIter<T> {
-    queue: Queue<T>
+    queue: Queue<T>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -143,8 +141,11 @@ impl<T> IntoIterator for Queue<T> {
     }
 }
 
-pub struct Iter<'a, T> where T: 'a {
-    node: Option<&'a Box<Node<T>>>
+pub struct Iter<'a, T>
+where
+    T: 'a,
+{
+    node: Option<&'a Box<Node<T>>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -177,11 +178,10 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 impl<T> Queue<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            node: self.first.as_ref()
+            node: self.first.as_ref(),
         }
     }
 }
-
 
 #[test]
 fn test_queue() {
@@ -220,7 +220,6 @@ fn test_queue_clone() {
 
     assert_eq!(queue1.peek(), Some(&"welcome"));
     assert_eq!(queue2.peek(), Some(&"beijing"));
-
 }
 
 #[test]
@@ -247,5 +246,4 @@ fn test_queue_iter() {
     for i in queue.iter() {
         assert_eq!(i, &rit.next().unwrap())
     }
-
 }

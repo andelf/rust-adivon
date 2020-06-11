@@ -13,28 +13,47 @@ fn max<T: PartialOrd + Copy>(x: T, y: T) -> T {
 
 #[derive(Clone)]
 pub enum Rope {
-    FlatCharVec { seq: Vec<char> },
-    Concatenation { left: Box<Rope>, right: Box<Rope>, depth: usize, length: usize },
-    Reverse { rope: Box<Rope> },
-    SubString { rope: Box<Rope>, offset: usize, length: usize },
+    FlatCharVec {
+        seq: Vec<char>,
+    },
+    Concatenation {
+        left: Box<Rope>,
+        right: Box<Rope>,
+        depth: usize,
+        length: usize,
+    },
+    Reverse {
+        rope: Box<Rope>,
+    },
+    SubString {
+        rope: Box<Rope>,
+        offset: usize,
+        length: usize,
+    },
 }
 
 fn write_rope_to_string(rope: &Rope, s: &mut String) {
     match *rope {
-        FlatCharVec { ref seq }                   => {
+        FlatCharVec { ref seq } => {
             s.push_str(&seq.iter().cloned().collect::<String>());
         }
-        Concatenation { ref left, ref right, .. } => {
+        Concatenation {
+            ref left, ref right, ..
+        } => {
             write_rope_to_string(left, s);
             write_rope_to_string(right, s);
-        },
-        Reverse { ref rope }                      => {
+        }
+        Reverse { ref rope } => {
             let inner = rope.to_string();
             s.push_str(&inner.chars().rev().collect::<String>());
         }
-        SubString { ref rope, offset, length }    => {
+        SubString {
+            ref rope,
+            offset,
+            length,
+        } => {
             let inner = rope.to_string();
-            s.push_str(&inner[offset..offset+length]);
+            s.push_str(&inner[offset..offset + length]);
         }
     }
 }
@@ -56,9 +75,13 @@ fn concatenate(left: Rope, right: Rope) -> Rope {
         return FlatCharVec { seq: lchs };
     }
     let depth = max(left.depth(), right.depth()) + 1;
-    Concatenation { left: Box::new(left), right: Box::new(right), depth: depth, length: length }
+    Concatenation {
+        left: Box::new(left),
+        right: Box::new(right),
+        depth: depth,
+        length: length,
+    }
 }
-
 
 impl Rope {
     pub fn from_vec(seq: Vec<char>) -> Rope {
@@ -67,10 +90,9 @@ impl Rope {
 
     pub fn len(&self) -> usize {
         match *self {
-            FlatCharVec { ref seq }      => seq.len(),
-            Reverse { ref rope }         => rope.len(),
-            SubString { length, .. } |
-            Concatenation { length, .. } => length
+            FlatCharVec { ref seq } => seq.len(),
+            Reverse { ref rope } => rope.len(),
+            SubString { length, .. } | Concatenation { length, .. } => length,
         }
     }
 
@@ -80,10 +102,9 @@ impl Rope {
 
     pub fn depth(&self) -> usize {
         match *self {
-            FlatCharVec { .. }          => 0,
+            FlatCharVec { .. } => 0,
             Concatenation { depth, .. } => depth,
-            Reverse { ref rope } |
-            SubString { ref rope, .. }  => rope.depth()
+            Reverse { ref rope } | SubString { ref rope, .. } => rope.depth(),
         }
     }
 
@@ -100,16 +121,16 @@ impl Rope {
     pub fn reverse(self) -> Self {
         match self {
             Reverse { rope } => *rope,
-            Concatenation { left, right, .. } => {
-                concatenate(right.reverse(), left.reverse())
-            },
-            this => Reverse { rope: Box::new(this) }
+            Concatenation { left, right, .. } => concatenate(right.reverse(), left.reverse()),
+            this => Reverse { rope: Box::new(this) },
         }
     }
 
     pub fn char_ref(&self, idx: usize) -> Option<&char> {
         match *self {
-            Concatenation { ref left, ref right, .. } => {
+            Concatenation {
+                ref left, ref right, ..
+            } => {
                 let llen = left.len();
                 if idx < llen {
                     left.char_ref(idx)
@@ -118,21 +139,25 @@ impl Rope {
                 } else {
                     None
                 }
-            },
+            }
             FlatCharVec { ref seq } => {
                 if idx < seq.len() {
                     Some(&seq[idx])
                 } else {
                     None
                 }
-            },
-            SubString { ref rope, ref offset, ref length }  => {
+            }
+            SubString {
+                ref rope,
+                ref offset,
+                ref length,
+            } => {
                 if idx < *length {
                     rope.char_ref(offset + idx)
                 } else {
                     None
                 }
-            },
+            }
             Reverse { ref rope } => {
                 let len = rope.len();
                 rope.char_ref(len - idx - 1)
@@ -142,7 +167,11 @@ impl Rope {
 
     pub fn char_ref_mut(&mut self, idx: usize) -> Option<&mut char> {
         match *self {
-            Concatenation { ref mut left, ref mut right, .. } => {
+            Concatenation {
+                ref mut left,
+                ref mut right,
+                ..
+            } => {
                 let llen = left.len();
                 if idx < llen {
                     left.char_ref_mut(idx)
@@ -151,21 +180,25 @@ impl Rope {
                 } else {
                     None
                 }
-            },
+            }
             FlatCharVec { ref mut seq } => {
                 if idx < seq.len() {
                     Some(&mut seq[idx])
                 } else {
                     None
                 }
-            },
-            SubString { ref mut rope, ref offset, ref length }  => {
+            }
+            SubString {
+                ref mut rope,
+                ref offset,
+                ref length,
+            } => {
                 if idx < *length {
                     rope.char_ref_mut(offset + idx)
                 } else {
                     None
                 }
-            },
+            }
             Reverse { ref mut rope } => {
                 let len = rope.len();
                 rope.char_ref_mut(len - idx - 1)
@@ -200,29 +233,37 @@ impl Rope {
                     if end <= llen {
                         left.slice(start, end)
                     } else if start >= llen {
-                        right.slice(start-llen, end-llen)
-                    } else  {
-                        concatenate(left.slice(start, llen), right.slice(0, end-llen))
+                        right.slice(start - llen, end - llen)
+                    } else {
+                        concatenate(left.slice(start, llen), right.slice(0, end - llen))
                     }
-                },
-                this@FlatCharVec { .. } => {
+                }
+                this @ FlatCharVec { .. } => {
                     if end - start < 16 {
                         if let FlatCharVec { seq } = this {
-                            FlatCharVec { seq: seq[start..end].to_vec() }
+                            FlatCharVec {
+                                seq: seq[start..end].to_vec(),
+                            }
                         } else {
                             unreachable!()
                         }
                     } else {
-                        SubString { rope: Box::new(this), offset: start, length: end-start }
+                        SubString {
+                            rope: Box::new(this),
+                            offset: start,
+                            length: end - start,
+                        }
                     }
-                },
-                SubString { rope, offset, length }  => {
-                    assert!(end - start <= length);
-                    SubString { rope: rope, offset: offset + start, length: end - start }
-                },
-                Reverse { rope } => {
-                    rope.slice(slen-end, slen-start).reverse()
                 }
+                SubString { rope, offset, length } => {
+                    assert!(end - start <= length);
+                    SubString {
+                        rope: rope,
+                        offset: offset + start,
+                        length: end - start,
+                    }
+                }
+                Reverse { rope } => rope.slice(slen - end, slen - start).reverse(),
             }
         }
     }
@@ -239,33 +280,35 @@ impl Rope {
         }
     }
 
-    pub fn peek<F>(self, mut f: F) -> Self where F: FnMut(&Self) {
+    pub fn peek<F>(self, mut f: F) -> Self
+    where
+        F: FnMut(&Self),
+    {
         f(&self);
         self
     }
 
     fn into_chars(self) -> Vec<char> {
         match self {
-            FlatCharVec { seq }         => seq,
+            FlatCharVec { seq } => seq,
             Concatenation { left, right, .. } => {
                 let mut lchs = left.into_chars();
                 let rchs = right.into_chars();
                 lchs.extend(rchs);
                 lchs
             }
-            Reverse { rope }        => {
+            Reverse { rope } => {
                 let mut inner = rope.into_chars();
                 inner.reverse();
                 inner
             }
-            SubString { rope, offset, length }  => {
+            SubString { rope, offset, length } => {
                 let inner = rope.into_chars();
-                inner[offset .. offset+length].to_vec()
+                inner[offset..offset + length].to_vec()
             }
         }
     }
 }
-
 
 impl<'a> ::std::convert::From<&'a str> for Rope {
     fn from(s: &'a str) -> Rope {
@@ -321,7 +364,9 @@ impl IntoRope for char {
 
 impl IntoRope for String {
     fn into_rope(self) -> Rope {
-        FlatCharVec { seq: self.chars().collect() }
+        FlatCharVec {
+            seq: self.chars().collect(),
+        }
     }
 }
 
@@ -333,11 +378,11 @@ impl IntoRope for Rope {
 
 impl<'a> IntoRope for &'a str {
     fn into_rope(self) -> Rope {
-        FlatCharVec { seq: self.chars().collect() }
+        FlatCharVec {
+            seq: self.chars().collect(),
+        }
     }
 }
-
-
 
 #[test]
 fn test_rope() {
@@ -375,7 +420,6 @@ fn test_rope2() {
     println!("len => {:?}", s2.len());
 }
 
-
 #[test]
 fn test_rope_char_at() {
     // Note: if str to short, will be automaticlly flatten.
@@ -390,8 +434,11 @@ fn test_rope_char_at() {
     assert_eq!(s.char_ref(23), Some(&'d'));
     // reverse
     let s = s.reverse().insert(30, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").delete(35, 40);
-    for i in 0 .. s.len() {
-        assert_eq!(s.to_string().chars().skip(i).next().unwrap(), s.char_ref(i).map(|&c| c).unwrap());
+    for i in 0..s.len() {
+        assert_eq!(
+            s.to_string().chars().skip(i).next().unwrap(),
+            s.char_ref(i).map(|&c| c).unwrap()
+        );
     }
 }
 

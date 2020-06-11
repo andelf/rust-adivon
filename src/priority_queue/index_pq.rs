@@ -6,13 +6,13 @@ pub struct IndexMinPQ<T: PartialOrd> {
     n: usize,
     pq: Vec<usize>,
     qp: Vec<usize>,
-    keys: Vec<Option<T>>
+    keys: Vec<Option<T>>,
 }
 
 impl<T: PartialOrd> IndexMinPQ<T> {
     pub fn with_capacity(nmax: usize) -> IndexMinPQ<T> {
         let mut keys = Vec::new();
-        for _ in 0 .. nmax + 1 {
+        for _ in 0..nmax + 1 {
             keys.push(None);
         }
         IndexMinPQ {
@@ -20,7 +20,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
             n: 0,
             pq: iter::repeat(0).take(nmax + 1).collect(),
             qp: iter::repeat(usize::MAX).take(nmax + 1).collect(),
-            keys: keys
+            keys: keys,
         }
     }
 
@@ -74,7 +74,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
             self.n -= 1;
             self.sink(1);
             self.qp[min] = usize::MAX; // delete
-            // help with gc
+                                       // help with gc
             self.keys[self.pq[self.n + 1]] = None;
             self.pq[self.n + 1] = usize::MAX;
             Some(min)
@@ -90,7 +90,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
     }
 
     pub fn change_key(&mut self, i: usize, key: T) {
-        if i>= self.nmax || !self.contains(i) {
+        if i >= self.nmax || !self.contains(i) {
             panic!("blah....");
         }
         self.keys[i] = Some(key);
@@ -101,7 +101,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
     }
 
     pub fn decrease_key(&mut self, i: usize, key: T) {
-        if i>= self.nmax || !self.contains(i) {
+        if i >= self.nmax || !self.contains(i) {
             panic!("decrease_key");
         }
         self.keys[i] = Some(key);
@@ -110,7 +110,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
     }
 
     pub fn increase_key(&mut self, i: usize, key: T) {
-        if i>= self.nmax || !self.contains(i) {
+        if i >= self.nmax || !self.contains(i) {
             panic!("increase_key");
         }
         self.keys[i] = Some(key);
@@ -119,7 +119,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
     }
 
     pub fn delete(&mut self, i: usize) {
-        if i>= self.nmax || !self.contains(i) {
+        if i >= self.nmax || !self.contains(i) {
             panic!("delete");
         }
         let index = self.qp[i];
@@ -144,17 +144,17 @@ impl<T: PartialOrd> IndexMinPQ<T> {
 
     fn swim(&mut self, k: usize) {
         let mut k = k;
-        while k > 1 && self.greater(k/2, k) {
-            self.exch(k, k/2);
+        while k > 1 && self.greater(k / 2, k) {
+            self.exch(k, k / 2);
             k /= 2;
         }
     }
 
     fn sink(&mut self, k: usize) {
         let mut k = k;
-        while 2*k <= self.n {
-            let mut j = 2*k;
-            if j < self.n && self.greater(j, j+1) {
+        while 2 * k <= self.n {
+            let mut j = 2 * k;
+            if j < self.n && self.greater(j, j + 1) {
                 j += 1;
             }
             if !self.greater(k, j) {
@@ -168,9 +168,7 @@ impl<T: PartialOrd> IndexMinPQ<T> {
 
 #[test]
 fn test_index_min_pq() {
-    let strings = vec![
-        "it", "was", "the", "best", "of", "times", "it", "was", "the", "worst"
-        ];
+    let strings = vec!["it", "was", "the", "best", "of", "times", "it", "was", "the", "worst"];
     let mut pq = IndexMinPQ::with_capacity(strings.len());
 
     for (i, s) in strings.iter().enumerate() {

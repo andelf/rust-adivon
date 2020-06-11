@@ -1,12 +1,12 @@
-use std::iter;
 use super::super::bag;
 use super::super::bag::Bag;
+use std::iter;
 
 #[derive(Clone, Debug)]
 pub struct Graph {
     v: usize,
     e: usize,
-    adj: Vec<Bag<usize>>
+    adj: Vec<Bag<usize>>,
 }
 
 impl Graph {
@@ -14,7 +14,7 @@ impl Graph {
         Graph {
             v: v,
             e: 0,
-            adj: iter::repeat(Bag::<usize>::new()).take(v).collect()
+            adj: iter::repeat(Bag::<usize>::new()).take(v).collect(),
         }
     }
 
@@ -48,7 +48,7 @@ impl Graph {
         let mut dot = String::new();
 
         dot.push_str("graph G {\n");
-        for i in 0 .. self.v {
+        for i in 0..self.v {
             dot.push_str(&format!("  {};\n", i));
         }
 
@@ -74,7 +74,6 @@ impl Graph {
         self.adj[v].iter()
     }
 }
-
 
 #[test]
 fn test_graph() {

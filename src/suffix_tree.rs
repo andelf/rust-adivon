@@ -1,17 +1,16 @@
 use std::fmt;
-use std::mem;
 use std::iter;
-use std::ptr;
 use std::iter::FromIterator;
+use std::mem;
+use std::ptr;
 
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 
 use vec_map::VecMap;
 
 use super::{Queue, Stack};
 
 pub use self::Node::*;
-
 
 fn min<T: PartialOrd + Copy>(x: T, y: T) -> T {
     if x >= y {
@@ -21,8 +20,6 @@ fn min<T: PartialOrd + Copy>(x: T, y: T) -> T {
     }
 }
 
-
-
 #[derive(Debug)]
 pub struct Rawlink<T> {
     p: *mut T,
@@ -31,19 +28,21 @@ pub struct Rawlink<T> {
 impl<T> Copy for Rawlink<T> {}
 
 impl<T> Clone for Rawlink<T> {
-    fn clone(&self) -> Rawlink<T> { *self }
+    fn clone(&self) -> Rawlink<T> {
+        *self
+    }
 }
 
 /// Rawlink is a type like Option<T> but for holding a raw mutable pointer.
 impl<T> Rawlink<T> {
     /// Like `Option::None` for Rawlink.
     fn none() -> Rawlink<T> {
-        Rawlink{p: ptr::null_mut()}
+        Rawlink { p: ptr::null_mut() }
     }
 
     /// Like `Option::Some` for Rawlink
     fn some(n: &mut T) -> Rawlink<T> {
-        Rawlink{p: n}
+        Rawlink { p: n }
     }
 
     fn is_null(&self) -> bool {
@@ -85,14 +84,18 @@ pub enum Node<'a, T: 'a> {
         // TODO: use bit vec
         terminates: VecMap<usize>,
         children: BTreeMap<T, Node<'a, T>>,
-        suffix_link: Rawlink<Node<'a, T>>
+        suffix_link: Rawlink<Node<'a, T>>,
     },
-    Root { children: BTreeMap<T, Node<'a, T>> }
+    Root {
+        children: BTreeMap<T, Node<'a, T>>,
+    },
 }
 
 impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     pub fn root() -> Node<'a, T> {
-        Root { children: BTreeMap::new() }
+        Root {
+            children: BTreeMap::new(),
+        }
     }
 
     pub fn leaf(data: &'a [T], txt_idx: usize, start_pos: usize, rank: usize) -> Node<'a, T> {
@@ -101,7 +104,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
             offsets: VecMap::from_iter(vec![(txt_idx, start_pos)]),
             terminates: VecMap::from_iter(vec![(txt_idx, rank)]),
             children: BTreeMap::new(),
-            suffix_link: Rawlink::none()
+            suffix_link: Rawlink::none(),
         }
     }
 
@@ -117,8 +120,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     pub fn add_child(&mut self, x: Node<'a, T>) {
         match *self {
-            Root { ref mut children } |
-            Internal { ref mut children, .. }=> {
+            Root { ref mut children } | Internal { ref mut children, .. } => {
                 children.insert(x.head(), x);
             }
         }
@@ -126,7 +128,12 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     fn truncated_internal(&mut self, txt_idx: usize, offset: usize) -> Node<'a, T> {
         match *self {
-            Internal { ref mut data, ref mut offsets, ref mut suffix_link, .. } => {
+            Internal {
+                ref mut data,
+                ref mut offsets,
+                ref mut suffix_link,
+                ..
+            } => {
                 let new_data = &data[..offset];
                 *data = &data[offset..];
                 let mut new_offsets = offsets.clone();
@@ -141,10 +148,10 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
                     offsets: new_offsets,
                     terminates: VecMap::new(),
                     children: BTreeMap::new(),
-                    suffix_link: suffix_link.take()
+                    suffix_link: suffix_link.take(),
                 }
-            },
-            Root { .. } => panic!("can't truncate a root node")
+            }
+            Root { .. } => panic!("can't truncate a root node"),
         }
     }
 
@@ -161,17 +168,15 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
         match *self {
             Internal { ref mut terminates, .. } => {
                 terminates.insert(txt_idx, position);
-            },
-            _ => panic!("add terminate error ")
+            }
+            _ => panic!("add terminate error "),
         }
     }
 
     pub fn terminates_any(&self) -> bool {
         match *self {
-            Internal { ref terminates, .. } => {
-                !terminates.is_empty()
-            }
-            _ => panic!("calling terminates_any() on wrong node")
+            Internal { ref terminates, .. } => !terminates.is_empty(),
+            _ => panic!("calling terminates_any() on wrong node"),
         }
     }
 
@@ -188,40 +193,51 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     pub fn data(&self) -> &'a [T] {
         match *self {
             Internal { data, .. } => data,
-            _ => panic!("root hava no data label")
+            _ => panic!("root hava no data label"),
         }
     }
 
     pub fn head(&self) -> T {
         match *self {
             Internal { data, .. } => data[0],
-            _ => panic!("root have no head")
+            _ => panic!("root have no head"),
         }
     }
 
     pub fn iter_children<'t>(&'t self) -> ::std::collections::btree_map::Values<'t, T, Node<'a, T>> {
         match *self {
-            Root { ref children } |
-            Internal { ref children, .. } => children.values()
+            Root { ref children } | Internal { ref children, .. } => children.values(),
         }
     }
 
     pub fn is_root(&self) -> bool {
-        if let Root { .. } = *self { true } else { false }
+        if let Root { .. } = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_internal(&self) -> bool {
-        if let Internal { .. } = *self { true } else { false }
+        if let Internal { .. } = *self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn clean_suffix_links(&mut self) {
         match *self {
-            Internal { ref mut suffix_link, ref mut children, .. } => {
+            Internal {
+                ref mut suffix_link,
+                ref mut children,
+                ..
+            } => {
                 suffix_link.take();
                 for (_, child) in children.iter_mut() {
                     child.clean_suffix_links();
                 }
-            },
+            }
             Root { ref mut children } => {
                 for (_, child) in children.iter_mut() {
                     child.clean_suffix_links();
@@ -232,15 +248,18 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     fn length(&self, txt_idx: usize, pos: usize) -> usize {
         if let Internal { data, ref offsets, .. } = *self {
-                let offset = *offsets.get(txt_idx).unwrap();
-                min(pos - offset + 1, data.len())
+            let offset = *offsets.get(txt_idx).unwrap();
+            min(pos - offset + 1, data.len())
         } else {
             0
         }
     }
 
     fn add_suffix_link(&mut self, slink: Rawlink<Node<'a, T>>) {
-        if let Internal { ref mut suffix_link, .. } = *self {
+        if let Internal {
+            ref mut suffix_link, ..
+        } = *self
+        {
             *suffix_link = slink;
         }
     }
@@ -255,13 +274,12 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     pub fn mut_child_starts_with<'t>(&'t mut self, c: &T) -> Option<&'t mut Node<'a, T>> {
         match *self {
-            Root { ref mut children } |
-            Internal { ref mut children, .. } => children.get_mut(c)
+            Root { ref mut children } | Internal { ref mut children, .. } => children.get_mut(c),
         }
     }
     pub fn child_starts_with(&self, c: &T) -> Option<&Node<'a, T>> {
         match *self {
-            Root { ref children } | Internal { ref children, .. } => children.get(c)
+            Root { ref children } | Internal { ref children, .. } => children.get(c),
         }
     }
 }
@@ -269,14 +287,14 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 #[derive(Debug)]
 pub struct SuffixTree<'a, T: Sized + 'a> {
     txts: Vec<&'a [T]>,
-    root: Node<'a, T>
+    root: Node<'a, T>,
 }
 
 impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
     pub fn new(txt: &'a [T]) -> SuffixTree<'a, T> {
         let mut st = SuffixTree {
             txts: vec![],
-            root: Node::root()
+            root: Node::root(),
         };
         st.add(txt);
         st
@@ -331,16 +349,27 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
             remainder += 1;
 
             let mut last_new_node: Rawlink<Node<T>> = Rawlink::none();
-            println!("** Phase {}, read {:?}", pos+1, c);
+            println!("** Phase {}, read {:?}", pos + 1, c);
             while remainder > 0 {
-                if active_length == 0 { active_edge = pos } // APCFALZ
-                // should create new terminal node here
-                if active_node.resolve().map_or(false, |n| n.child_starts_with(&txt[active_edge]).is_none()) {
+                if active_length == 0 {
+                    active_edge = pos
+                } // APCFALZ
+                  // should create new terminal node here
+                if active_node
+                    .resolve()
+                    .map_or(false, |n| n.child_starts_with(&txt[active_edge]).is_none())
+                {
                     // Extension Rule 2 (A new leaf edge gets created)
-                    active_node.resolve_mut().map(|n| n.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos)));
+                    active_node
+                        .resolve_mut()
+                        .map(|n| n.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos)));
                     last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
                     last_new_node = Rawlink::none();
-                } else if let Some(ref mut next) = active_node.resolve_mut().unwrap().mut_child_starts_with(&txt[active_edge]) {
+                } else if let Some(ref mut next) = active_node
+                    .resolve_mut()
+                    .unwrap()
+                    .mut_child_starts_with(&txt[active_edge])
+                {
                     // if let Internal { ref mut offsets, .. } = **next {
                     //     if offsets.get(&txt_idx).is_none() {
                     //         offsets.insert(txt_idx, active_edge);
@@ -374,7 +403,9 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                     next.split_at(txt_idx, active_length);
                     next.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos));
 
-                    last_new_node.resolve_mut().map(|n| n.add_suffix_link(Rawlink::some(next)));
+                    last_new_node
+                        .resolve_mut()
+                        .map(|n| n.add_suffix_link(Rawlink::some(next)));
                     last_new_node = Rawlink::some(next);
                 } else {
                     unreachable!();
@@ -382,7 +413,8 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
 
                 remainder -= 1;
 
-                if active_node.resolve().unwrap().is_root() && active_length > 0 { // APCFER2C1
+                if active_node.resolve().unwrap().is_root() && active_length > 0 {
+                    // APCFER2C1
                     active_length -= 1;
                     active_edge = pos - remainder + 1;
                 } else if !active_node.resolve().unwrap().is_root() {
@@ -394,15 +426,11 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
         if remainder > 0 {
             println!(":( remainder = {}", remainder);
         }
-
     }
 }
 
-
 fn dot_id<T>(x: &T) -> u64 {
-    unsafe {
-        mem::transmute::<_, u64>(x)
-    }
+    unsafe { mem::transmute::<_, u64>(x) }
 }
 
 impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
@@ -420,14 +448,21 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
                 if node.terminates_any() {
                     dot.push_str(&format!("  {} [ color = \"red\", ];\n", nid));
                 }
-                dot.push_str(&format!("  {} -> {} [ label = \"{}\"];\n", pid, nid,
-                                      node.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()));
+                dot.push_str(&format!(
+                    "  {} -> {} [ label = \"{}\"];\n",
+                    pid,
+                    nid,
+                    node.data()
+                        .iter()
+                        .map(|c| c.to_string())
+                        .collect::<Vec<String>>()
+                        .concat()
+                ));
                 // x.suffix_link().resolve().map(|n| dot.push_str(&format!("  {} -> {} [ style=dashed ];\n", pid, dot_id(n))));
                 if node.is_internal() {
                     queue.enqueue(node);
                 }
             }
-
         }
         dot.push_str("}\n");
         dot
@@ -436,7 +471,7 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
 
 impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "SuffixTree(txts: {:?})\n", self.txts));
+        write!(f, "SuffixTree(txts: {:?})\n", self.txts)?;
         let mut stack = Stack::new();
         let mut ident_stack = Stack::new();
         stack.push(&self.root);
@@ -446,14 +481,19 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<
             let ident = ident_stack.pop().unwrap();
             if !x.is_root() {
                 let spaces = String::from_iter(iter::repeat(' ').take(ident).collect::<Vec<char>>());
-                try!(write!(f, "{}|<{}>", spaces, x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()));
+                write!(
+                    f,
+                    "{}|<{}>",
+                    spaces,
+                    x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()
+                )?;
                 if x.terminates_any() {
-                    try!(writeln!(f, "*"));
+                    writeln!(f, "*")?;
                 } else {
-                    try!(writeln!(f, ""));
+                    writeln!(f, "")?;
                 }
             }
-            for node in x.iter_children(){
+            for node in x.iter_children() {
                 stack.push(node);
                 ident_stack.push(ident + 2);
             }
@@ -461,7 +501,6 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<
         Ok(())
     }
 }
-
 
 #[test]
 fn test_suffix_tree() {
@@ -471,7 +510,6 @@ fn test_suffix_tree() {
     println!("got => {}", st);
     println!("dot =>\n{}", st.to_dot());
 }
-
 
 // #[test]
 // fn test_suffix_tree_contains() {
@@ -485,4 +523,4 @@ fn test_suffix_tree() {
 //     assert!(st.contains(b"abcabxabcdaabab"));
 //     assert!( st.contains(b"bxabcdaa"));
 //     assert!(!st.contains(b"bxabadaa"));
-    // }
+// }

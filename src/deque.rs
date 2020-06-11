@@ -1,9 +1,9 @@
+use std::fmt;
 use std::mem;
 use std::ptr;
-use std::fmt;
 
 struct Rawlink<T> {
-    p: *mut T
+    p: *mut T,
 }
 
 impl<T> Rawlink<T> {
@@ -23,8 +23,7 @@ impl<T> Rawlink<T> {
 struct Node<T> {
     item: T,
     next: Option<Box<Node<T>>>,
-    prev: Rawlink<Node<T>>
-
+    prev: Rawlink<Node<T>>,
 }
 
 impl<T> Node<T> {
@@ -42,14 +41,14 @@ impl<T> Node<T> {
 /// linked double queue
 pub struct Deque<T> {
     first: Option<Box<Node<T>>>,
-    last: Rawlink<Node<T>>
+    last: Rawlink<Node<T>>,
 }
 
 impl<T> Deque<T> {
     pub fn new() -> Deque<T> {
         Deque {
             first: None,
-            last: Rawlink::none()
+            last: Rawlink::none(),
         }
     }
 
@@ -66,7 +65,7 @@ impl<T> Deque<T> {
         let mut first = Box::new(Node {
             item: item,
             next: None,
-            prev: Rawlink::none()
+            prev: Rawlink::none(),
         });
 
         if old_first.is_some() {
@@ -91,7 +90,6 @@ impl<T> Deque<T> {
             unsafe {
                 (*old_last.p).next = Some(last);
             }
-
         } else {
             self.add_first(item)
         }
@@ -100,7 +98,9 @@ impl<T> Deque<T> {
     pub fn remove_first(&mut self) -> Option<T> {
         let old_first = self.first.take();
         if old_first.is_some() {
-            let Node { item, next: mut first, .. } = *old_first.unwrap();
+            let Node {
+                item, next: mut first, ..
+            } = *old_first.unwrap();
             // update new first's prev field
             first.as_mut().map(|v| v.prev = Rawlink::none());
             self.first = first;
@@ -149,7 +149,7 @@ impl<T> Deque<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
             current: self.first.as_ref(),
-            nelem: self.len()
+            nelem: self.len(),
         }
     }
 }
@@ -157,18 +157,17 @@ impl<T> Deque<T> {
 impl<T: fmt::Display> fmt::Display for Deque<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.first {
-            None    => {
-                try!(write!(f, "<empty deque>"));
-            },
+            None => {
+                write!(f, "<empty deque>")?;
+            }
             Some(ref l) => {
-                try!(write!(f, "("));
+                write!(f, "(")?;
                 let mut p = Some(l);
                 while p.is_some() {
-                    try!(write!(f, "{},", p.unwrap().item));
+                    write!(f, "{},", p.unwrap().item)?;
                     p = p.unwrap().next.as_ref();
                 }
-                try!(write!(f, ")"));
-
+                write!(f, ")")?;
             }
         }
         Ok(())
@@ -176,7 +175,7 @@ impl<T: fmt::Display> fmt::Display for Deque<T> {
 }
 
 pub struct IntoIter<T> {
-    q: Deque<T>
+    q: Deque<T>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -269,7 +268,6 @@ fn test_linked_deque_add_remove() {
 
     assert!(deque.is_empty());
 }
-
 
 #[test]
 fn test_linked_deque_size() {

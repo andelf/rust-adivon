@@ -2,28 +2,34 @@ use super::Queue;
 
 pub struct Node<V, K: Copy + PartialOrd = char> {
     c: K,
-    left:  Option<Box<Node<V, K>>>,
-    mid:   Option<Box<Node<V, K>>>,
+    left: Option<Box<Node<V, K>>>,
+    mid: Option<Box<Node<V, K>>>,
     right: Option<Box<Node<V, K>>>,
     val: Option<V>,
 }
 
-impl<K: PartialOrd + Copy , V> Node<V, K> {
+impl<K: PartialOrd + Copy, V> Node<V, K> {
     fn new(c: K) -> Node<V, K> {
         Node {
             c: c,
             left: None,
             mid: None,
             right: None,
-            val: None
+            val: None,
         }
     }
 
-    fn put(mut x: Option<Box<Node<V, K>>>, key: &[K], val: Option<V>, d: usize) -> (Option<Box<Node<V, K>>>, Option<V>) {
+    fn put(
+        mut x: Option<Box<Node<V, K>>>,
+        key: &[K],
+        val: Option<V>,
+        d: usize,
+    ) -> (Option<Box<Node<V, K>>>, Option<V>) {
         let replaced;
         let c = key[d];
         if x.is_none() {
-            if val.is_none() {  // no need to call put further
+            if val.is_none() {
+                // no need to call put further
                 return (x, None);
             }
             x = Some(Box::new(Node::new(c)));
@@ -37,8 +43,8 @@ impl<K: PartialOrd + Copy , V> Node<V, K> {
             let (right, repl) = Node::put(x.as_mut().unwrap().right.take(), key, val, d);
             x.as_mut().map(|n| n.right = right);
             replaced = repl;
-        } else if d < key.len()-1 {
-            let (mid, repl) = Node::put(x.as_mut().unwrap().mid.take(), key, val, d+1);
+        } else if d < key.len() - 1 {
+            let (mid, repl) = Node::put(x.as_mut().unwrap().mid.take(), key, val, d + 1);
             x.as_mut().map(|n| n.mid = mid);
             replaced = repl;
         } else {
@@ -58,8 +64,8 @@ impl<K: PartialOrd + Copy , V> Node<V, K> {
             Node::get(x.unwrap().left.as_ref(), key, d)
         } else if c > xc {
             Node::get(x.unwrap().right.as_ref(), key, d)
-        } else if d < key.len()-1 {
-            Node::get(x.unwrap().mid.as_ref(), key, d+1)
+        } else if d < key.len() - 1 {
+            Node::get(x.unwrap().mid.as_ref(), key, d + 1)
         } else {
             x
         }
@@ -75,8 +81,8 @@ impl<K: PartialOrd + Copy , V> Node<V, K> {
             Node::get_mut(x.unwrap().left.as_mut(), key, d)
         } else if c > xc {
             Node::get_mut(x.unwrap().right.as_mut(), key, d)
-        } else if d < key.len()-1 {
-            Node::get_mut(x.unwrap().mid.as_mut(), key, d+1)
+        } else if d < key.len() - 1 {
+            Node::get_mut(x.unwrap().mid.as_mut(), key, d + 1)
         } else {
             x
         }
@@ -126,10 +132,10 @@ impl<K: PartialOrd + Copy , V> Node<V, K> {
 /// Symbol table with string keys, implemented using a ternary search trie (TST).
 pub struct TernarySearchTrie<V, K: PartialOrd + Copy = char> {
     root: Option<Box<Node<V, K>>>,
-    n: usize
+    n: usize,
 }
 
-impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K>  {
+impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K> {
     pub fn new() -> TernarySearchTrie<V, K> {
         TernarySearchTrie { root: None, n: 0 }
     }
@@ -196,7 +202,6 @@ impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K>  {
         queue.into_iter().collect()
     }
 }
-
 
 #[test]
 fn test_tst() {

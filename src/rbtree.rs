@@ -1,9 +1,8 @@
-use std::iter;
-use std::fmt;
-use std::mem;
-use std::cmp::Ordering;
 use self::Color::*;
-
+use std::cmp::Ordering;
+use std::fmt;
+use std::iter;
+use std::mem;
 
 fn max<T: PartialOrd + Copy>(a: T, b: T) -> T {
     if a >= b {
@@ -24,7 +23,7 @@ fn max<T: PartialOrd + Copy>(a: T, b: T) -> T {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
     Red,
-    Black
+    Black,
 }
 
 pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
@@ -32,9 +31,9 @@ pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
 pub struct Node<K, V> {
     pub key: K,
     pub val: V,
-    pub left:  Option<Box<Node<K, V>>>,
+    pub left: Option<Box<Node<K, V>>>,
     pub right: Option<Box<Node<K, V>>>,
-    pub color: Color
+    pub color: Color,
 }
 
 impl<K, V> Node<K, V> {
@@ -45,7 +44,7 @@ impl<K, V> Node<K, V> {
             val: val,
             left: None,
             right: None,
-            color: color
+            color: color,
         }
     }
 
@@ -101,14 +100,26 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
     fn dump(&self, depth: usize, f: &mut fmt::Formatter, symbol: char) {
         if depth == 0 {
             writeln!(f, "\n{:?}[{:?}]", self.key, self.val).unwrap();
-        } else if self.is_red () {
-            writeln!(f, "{}{}=={:?}[{:?}]",
-                     iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                     symbol, self.key, self.val).unwrap();
+        } else if self.is_red() {
+            writeln!(
+                f,
+                "{}{}=={:?}[{:?}]",
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
+                symbol,
+                self.key,
+                self.val
+            )
+            .unwrap();
         } else {
-            writeln!(f, "{}{}--{:?}[{:?}]",
-                     iter::repeat("|  ").take(depth-1).collect::<Vec<&str>>().concat(),
-                     symbol, self.key, self.val).unwrap();
+            writeln!(
+                f,
+                "{}{}--{:?}[{:?}]",
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
+                symbol,
+                self.key,
+                self.val
+            )
+            .unwrap();
         }
         if self.left.is_some() {
             self.left.as_ref().unwrap().dump(depth + 1, f, '+');
@@ -119,7 +130,7 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
     }
 }
 
-fn is_red<K,V>(x: &NodeCell<K, V>) -> bool {
+fn is_red<K, V>(x: &NodeCell<K, V>) -> bool {
     if x.as_ref().is_none() {
         false
     } else {
@@ -136,14 +147,12 @@ fn put<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: K, val: V) -> NodeCell<K, V
         Ordering::Less => {
             let left = x.as_mut().unwrap().left.take();
             x.as_mut().unwrap().left = put(left, key, val)
-        },
+        }
         Ordering::Greater => {
             let right = x.as_mut().unwrap().right.take();
             x.as_mut().unwrap().right = put(right, key, val)
-        },
-        Ordering::Equal => {
-            x.as_mut().unwrap().val = val
         }
+        Ordering::Equal => x.as_mut().unwrap().val = val,
     }
 
     if is_red(&x.as_ref().unwrap().right) && !is_red(&x.as_ref().unwrap().left) {
@@ -158,7 +167,6 @@ fn put<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: K, val: V) -> NodeCell<K, V
     x
 }
 
-
 fn delete<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
     if x.is_none() {
         return None;
@@ -169,12 +177,12 @@ fn delete<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
             let left = x.as_mut().unwrap().left.take();
             x.as_mut().unwrap().left = delete(left, key);
             x
-        },
+        }
         Ordering::Greater => {
             let right = x.as_mut().unwrap().right.take();
             x.as_mut().unwrap().right = delete(right, key);
             x
-        },
+        }
         Ordering::Equal => {
             if x.as_ref().unwrap().right.is_none() {
                 return x.as_mut().unwrap().left.take();
@@ -197,14 +205,14 @@ fn delete<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
 }
 
 pub struct RedBlackBST<K, V> {
-    pub root: Option<Box<Node<K, V>>>
+    pub root: Option<Box<Node<K, V>>>,
 }
 
 impl<K: PartialOrd, V> RedBlackBST<K, V> {
     pub fn depth(&self) -> usize {
         match self.root {
             None => 0,
-            Some(ref x) => x.depth()
+            Some(ref x) => x.depth(),
         }
     }
 }
@@ -224,13 +232,11 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
             match key.partial_cmp(&x.unwrap().key).unwrap() {
                 Ordering::Less => {
                     x = x.unwrap().left.as_ref();
-                },
+                }
                 Ordering::Greater => {
                     x = x.unwrap().right.as_ref();
-                },
-                Ordering::Equal  => {
-                    return Some(&x.unwrap().val)
                 }
+                Ordering::Equal => return Some(&x.unwrap().val),
             }
         }
         None
@@ -260,7 +266,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
     }
 }
 
-fn floor<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Option<&'a Node<K,V>> {
+fn floor<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K, V>>>, key: &K) -> Option<&'a Node<K, V>> {
     if x.is_none() {
         return None;
     }
@@ -268,10 +274,10 @@ fn floor<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Option
     match key.partial_cmp(&x.unwrap().key).unwrap() {
         Ordering::Equal => {
             return Some(&(**x.unwrap()));
-        },
+        }
         Ordering::Less => {
             return floor(x.unwrap().left.as_ref(), key);
-        },
+        }
         _ => (),
     }
 
@@ -283,7 +289,7 @@ fn floor<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Option
     }
 }
 
-fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Option<&'a Node<K,V>> {
+fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K, V>>>, key: &K) -> Option<&'a Node<K, V>> {
     if x.is_none() {
         return None;
     }
@@ -291,10 +297,10 @@ fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Box<Node<K,V>>>, key: &K) -> Opti
     match key.partial_cmp(&x.unwrap().key).unwrap() {
         Ordering::Equal => {
             return Some(&(**x.unwrap()));
-        },
+        }
         Ordering::Greater => {
             return ceiling(x.unwrap().right.as_ref(), key);
-        },
+        }
         _ => (),
     }
 
@@ -313,7 +319,7 @@ fn delete_min<K: PartialOrd, V>(mut x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeC
         return (None, None);
     }
     match x.as_mut().unwrap().left.take() {
-        None           => (x.as_mut().unwrap().right.take(), x),
+        None => (x.as_mut().unwrap().right.take(), x),
         left @ Some(_) => {
             let (t, deleted) = delete_min(left);
             x.as_mut().unwrap().left = t;
@@ -329,7 +335,7 @@ fn delete_max<K: PartialOrd, V>(mut x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeC
         return (None, None);
     }
     match x.as_mut().unwrap().right.take() {
-        None            => (x.as_mut().unwrap().left.take(), x),
+        None => (x.as_mut().unwrap().left.take(), x),
         right @ Some(_) => {
             let (t, deleted) = delete_max(right);
             x.as_mut().unwrap().right = t;
@@ -338,23 +344,23 @@ fn delete_max<K: PartialOrd, V>(mut x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeC
     }
 }
 
-fn find_max<K: PartialOrd, V>(x: Option<&Box<Node<K,V>>>) -> Option<&Box<Node<K,V>>> {
+fn find_max<K: PartialOrd, V>(x: Option<&Box<Node<K, V>>>) -> Option<&Box<Node<K, V>>> {
     if x.is_none() {
         return None;
     }
     match x.as_ref().unwrap().right.as_ref() {
-        None            => x,
-        right @ Some(_) => find_max(right)
+        None => x,
+        right @ Some(_) => find_max(right),
     }
 }
 
-fn find_min<K: PartialOrd, V>(x: Option<&Box<Node<K,V>>>) -> Option<&Box<Node<K,V>>> {
+fn find_min<K: PartialOrd, V>(x: Option<&Box<Node<K, V>>>) -> Option<&Box<Node<K, V>>> {
     if x.is_none() {
         return None;
     }
     match x.as_ref().unwrap().left.as_ref() {
-        None           => x,
-        left @ Some(_) => find_min(left)
+        None => x,
+        left @ Some(_) => find_min(left),
     }
 }
 
@@ -391,22 +397,18 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
 
     /// number of keys less than key
     pub fn rank(&self, key: &K) -> usize {
-        fn rank_helper<K: PartialOrd, V>(x: Option<&Box<Node<K,V>>>, key: &K) -> usize {
+        fn rank_helper<K: PartialOrd, V>(x: Option<&Box<Node<K, V>>>, key: &K) -> usize {
             if x.is_none() {
                 return 0;
             }
 
             match key.partial_cmp(&x.unwrap().key).unwrap() {
-                Ordering::Less => {
-                    rank_helper(x.unwrap().left.as_ref(), key)
-                },
+                Ordering::Less => rank_helper(x.unwrap().left.as_ref(), key),
                 Ordering::Greater => {
                     1 + x.as_ref().unwrap().left.as_ref().map_or(0, |n| n.size()) +
                         rank_helper(x.unwrap().right.as_ref(), key)
                 }
-                Ordering::Equal => {
-                    x.as_ref().unwrap().left.as_ref().map_or(0, |n| n.size())
-                }
+                Ordering::Equal => x.as_ref().unwrap().left.as_ref().map_or(0, |n| n.size()),
             }
         }
 
@@ -417,7 +419,7 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
     pub fn select(&self, k: usize) -> Option<&K> {
         for key in self.keys() {
             if self.rank(key) == k {
-                return Some(key)
+                return Some(key);
             }
         }
         None
@@ -434,10 +436,9 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
     }
 }
 
-
 impl<K: PartialOrd, V> RedBlackBST<K, V> {
     pub fn keys(&self) -> ::std::vec::IntoIter<&K> {
-        fn inorder<'a, K, V>(x: Option<&'a Box<Node<K,V>>>, queue: &mut Vec<&'a K>) {
+        fn inorder<'a, K, V>(x: Option<&'a Box<Node<K, V>>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
             }
@@ -450,7 +451,6 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
         queue.into_iter()
     }
 }
-
 
 impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for RedBlackBST<K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -467,7 +467,7 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for RedBlackBST<K, V> {
 fn test_red_black_tree_shape() {
     let mut t = RedBlackBST::<i32, ()>::new();
     assert_eq!(0, t.depth());
-    for c in 0 .. 255 {
+    for c in 0..255 {
         t.put(c, ());
     }
     // println!("{:?}", t);
@@ -475,7 +475,6 @@ fn test_red_black_tree_shape() {
     // max for n=255
     assert!(t.depth() <= 8);
 }
-
 
 #[test]
 fn test_red_black_tree() {
@@ -487,7 +486,7 @@ fn test_red_black_tree() {
     }
 
     // println!("{:?}", t);
-    assert_eq!(t.get(&'E'),  Some(&6));
+    assert_eq!(t.get(&'E'), Some(&6));
     assert_eq!(t.floor(&'O'), Some(&'M'));
     assert_eq!(t.ceiling(&'Q'), Some(&'R'));
     assert_eq!(t.size(), 9);

@@ -4,7 +4,7 @@ pub struct UnionFind {
     id: Vec<usize>,
     /// number of objects in the tree rooted at i.
     rank: Vec<usize>,
-    count: usize
+    count: usize,
 }
 
 impl UnionFind {
@@ -12,7 +12,7 @@ impl UnionFind {
         UnionFind {
             id: (0..n).collect(),
             rank: vec![0; n],
-            count: n
+            count: n,
         }
     }
 
@@ -20,7 +20,7 @@ impl UnionFind {
     pub fn find(&mut self, mut p: usize) -> usize {
         assert!(p < self.id.len());
         while p != self.id[p] {
-            self.id[p] = self.id[self.id[p]];    // path compression by halving
+            self.id[p] = self.id[self.id[p]]; // path compression by halving
             p = self.id[p];
         }
         p
@@ -57,12 +57,11 @@ impl UnionFind {
 impl fmt::Display for UnionFind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for i in &self.id {
-            try!(write!(f, "{} ", i));
+            write!(f, "{} ", i)?;
         }
         Ok(())
     }
 }
-
 
 #[test]
 fn test_uf() {

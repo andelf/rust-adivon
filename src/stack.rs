@@ -7,13 +7,13 @@ impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
         Node {
             val: self.val.clone(),
-            next: self.next.clone()
+            next: self.next.clone(),
         }
     }
 }
 
 pub struct Stack<T> {
-    s: Option<Box<Node<T>>>
+    s: Option<Box<Node<T>>>,
 }
 
 impl<T: Clone> Clone for Stack<T> {
@@ -61,9 +61,8 @@ impl<T> Stack<T> {
     }
 }
 
-
 pub struct IntoIter<T> {
-    stack: Stack<T>
+    stack: Stack<T>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -94,8 +93,11 @@ impl<T> IntoIterator for Stack<T> {
     }
 }
 
-pub struct Iter<'a, T> where T: 'a {
-    node: Option<&'a Box<Node<T>>>
+pub struct Iter<'a, T>
+where
+    T: 'a,
+{
+    node: Option<&'a Box<Node<T>>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -127,9 +129,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 
 impl<T> Stack<T> {
     pub fn iter(&self) -> Iter<T> {
-        Iter {
-            node: self.s.as_ref()
-        }
+        Iter { node: self.s.as_ref() }
     }
 }
 
@@ -154,7 +154,6 @@ fn test_stack() {
     assert_eq!(s.pop(), Some(100));
 }
 
-
 #[test]
 fn test_stack_into_iter() {
     let mut s = Stack::new();
@@ -167,7 +166,6 @@ fn test_stack_into_iter() {
         assert_eq!(i, result.next().unwrap());
     }
 }
-
 
 #[test]
 fn test_stack_iter() {

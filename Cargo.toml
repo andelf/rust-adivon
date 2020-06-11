@@ -6,21 +6,19 @@ description = "Data Structures of daily use: Graph, HashTable, PriorityQueue, Tr
 documentation = "https://docs.rs/adivon/"
 homepage = "https://github.com/andelf/rust-adivon"
 repository = "https://github.com/andelf/rust-adivon.git"
-keywords = [
-  "algorithm",
-  "book"
-]
+keywords = ["algorithm", "book"]
 license = "MIT OR Apache-2.0"
+edition = "2018"
 
 [features]
 default = []
 dev = ["clippy"]
 
 [dependencies]
-rand = "0.3"
-vec_map = "0.6"
+rand = "0.7"
+vec_map = "0.8"
 # clippy = "*"
-clippy = {version = "0.0", optional = true}
+clippy = { version = "0.0", optional = true }
 
 [dev-dependencies]
-quickcheck = "0.3"
+quickcheck = "0.9"
