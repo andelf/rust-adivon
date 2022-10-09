@@ -31,7 +31,7 @@ pub type NodeCell<K, V> = Option<Box<Node<K, V>>>;
 pub struct Node<K, V> {
     pub key: K,
     pub val: V,
-    pub left: NodeCell<K, V>>,
+    pub left: NodeCell<K, V>,
     pub right: NodeCell<K, V>,
     pub color: Color,
 }
