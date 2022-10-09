@@ -22,6 +22,12 @@ impl<T: Clone> Clone for Stack<T> {
     }
 }
 
+impl<T> Default for Stack<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Stack<T> {
     pub fn new() -> Stack<T> {
         Stack { s: None }
@@ -29,12 +35,12 @@ impl<T> Stack<T> {
 
     pub fn push(&mut self, val: T) {
         let next = self.s.take();
-        self.s = Some(Box::new(Node { val: val, next: next }))
+        self.s = Some(Box::new(Node { val, next }))
     }
 
     pub fn pop(&mut self) -> Option<T> {
         let mut top = self.s.take();
-        self.s = top.as_mut().map_or(None, |t| t.next.take());
+        self.s = top.as_mut().and_then(|t| t.next.take());
         top.map(|n| n.val)
     }
 
@@ -42,7 +48,7 @@ impl<T> Stack<T> {
         let mut sz = 0;
         let mut p = self.s.as_ref();
         while p.is_some() {
-            p = p.map_or(None, |n| n.next.as_ref());
+            p = p.and_then(|n| n.next.as_ref());
             sz += 1;
         }
         sz
@@ -97,7 +103,7 @@ pub struct Iter<'a, T>
 where
     T: 'a,
 {
-    node: Option<&'a Box<Node<T>>>,
+    node: Option<&'a Node<T>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -105,16 +111,16 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     fn next(&mut self) -> Option<&'a T> {
         let ret = self.node.map(|n| &n.val);
-        self.node = self.node.map_or(None, |n| n.next.as_ref());
+        self.node = self.node.and_then(|n| n.next.as_deref());
         ret
     }
 
     // Bad
     fn size_hint(&self) -> (usize, Option<usize>) {
         let mut sz = 0;
-        let mut p = self.node;
+        let p = self.node;
         while p.is_some() {
-            p = p.map_or(None, |n| n.next.as_ref());
+            p.and_then(|n| n.next.as_ref());
             sz += 1;
         }
         (sz, Some(sz))
@@ -129,7 +135,9 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 
 impl<T> Stack<T> {
     pub fn iter(&self) -> Iter<T> {
-        Iter { node: self.s.as_ref() }
+        Iter {
+            node: self.s.as_deref(),
+        }
     }
 }
 

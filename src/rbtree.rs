@@ -108,10 +108,7 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
             writeln!(
                 f,
                 "{}{}=={:?}[{:?}]",
-                iter::repeat("|  ")
-                    .take(depth - 1)
-                    .collect::<Vec<&str>>()
-                    .concat(),
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
                 symbol,
                 self.key,
                 self.val
@@ -121,10 +118,7 @@ impl<K: fmt::Debug, V: fmt::Debug> Node<K, V> {
             writeln!(
                 f,
                 "{}{}--{:?}[{:?}]",
-                iter::repeat("|  ")
-                    .take(depth - 1)
-                    .collect::<Vec<&str>>()
-                    .concat(),
+                iter::repeat("|  ").take(depth - 1).collect::<Vec<&str>>().concat(),
                 symbol,
                 self.key,
                 self.val
@@ -168,8 +162,7 @@ fn put<K: PartialOrd, V>(mut x: NodeCell<K, V>, key: K, val: V) -> NodeCell<K, V
     if is_red(&x.as_ref().unwrap().right) && !is_red(&x.as_ref().unwrap().left) {
         x.as_mut().unwrap().rotate_left();
     }
-    if is_red(&x.as_ref().unwrap().left) && is_red(&x.as_ref().unwrap().left.as_ref().unwrap().left)
-    {
+    if is_red(&x.as_ref().unwrap().left) && is_red(&x.as_ref().unwrap().left.as_ref().unwrap().left) {
         x.as_mut().unwrap().rotate_right();
     }
     if is_red(&x.as_ref().unwrap().left) && is_red(&x.as_ref().unwrap().right) {
@@ -223,6 +216,12 @@ impl<K: PartialOrd, V> RedBlackBST<K, V> {
             None => 0,
             Some(ref x) => x.depth(),
         }
+    }
+}
+
+impl<K: PartialOrd, V> Default for RedBlackBST<K, V> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -296,10 +295,7 @@ fn floor<'a, K: PartialOrd, V>(x: Option<&'a Node<K, V>>, key: &K) -> Option<&'a
     }
 }
 
-fn ceiling<'a, K: PartialOrd, V>(
-    x: Option<&'a Node<K, V>>,
-    key: &K,
-) -> Option<&'a Node<K, V>> {
+fn ceiling<'a, K: PartialOrd, V>(x: Option<&'a Node<K, V>>, key: &K) -> Option<&'a Node<K, V>> {
     x?;
 
     match key.partial_cmp(&x.unwrap().key).unwrap() {

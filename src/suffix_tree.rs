@@ -100,7 +100,7 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
 
     pub fn leaf(data: &'a [T], txt_idx: usize, start_pos: usize, rank: usize) -> Node<'a, T> {
         Internal {
-            data: data,
+            data,
             offsets: VecMap::from_iter(vec![(txt_idx, start_pos)]),
             terminates: VecMap::from_iter(vec![(txt_idx, rank)]),
             children: BTreeMap::new(),
@@ -211,19 +211,11 @@ impl<'a, T: Ord + Copy + fmt::Debug> Node<'a, T> {
     }
 
     pub fn is_root(&self) -> bool {
-        if let Root { .. } = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Root { .. })
     }
 
     pub fn is_internal(&self) -> bool {
-        if let Internal { .. } = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Internal { .. })
     }
 
     pub fn clean_suffix_links(&mut self) {
@@ -360,10 +352,12 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                     .map_or(false, |n| n.child_starts_with(&txt[active_edge]).is_none())
                 {
                     // Extension Rule 2 (A new leaf edge gets created)
-                    active_node
-                        .resolve_mut()
-                        .map(|n| n.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos)));
-                    last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
+                    if let Some(n) = active_node.resolve_mut() {
+                        n.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos))
+                    }
+                    if let Some(n) = last_new_node.resolve_mut() {
+                        n.add_suffix_link(active_node)
+                    }
                     last_new_node = Rawlink::none();
                 } else if let Some(ref mut next) = active_node
                     .resolve_mut()
@@ -392,7 +386,9 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                         // suffix link to be set, then set suffix link
                         // of that waiting node to curent active node
                         if !last_new_node.is_null() && !active_node.resolve().unwrap().is_root() {
-                            last_new_node.resolve_mut().map(|n| n.add_suffix_link(active_node));
+                            if let Some(n) = last_new_node.resolve_mut() {
+                                n.add_suffix_link(active_node)
+                            }
                             // last_new_node = Rawlink::none();
                         }
                         // APCFER3
@@ -403,9 +399,9 @@ impl<'a, T: Ord + Copy + fmt::Debug> SuffixTree<'a, T> {
                     next.split_at(txt_idx, active_length);
                     next.add_child(Node::leaf(&txt[pos..], txt_idx, pos, pos));
 
-                    last_new_node
-                        .resolve_mut()
-                        .map(|n| n.add_suffix_link(Rawlink::some(next)));
+                    if let Some(n) = last_new_node.resolve_mut() {
+                        n.add_suffix_link(Rawlink::some(next))
+                    }
                     last_new_node = Rawlink::some(next);
                 } else {
                     unreachable!();
@@ -471,7 +467,7 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> SuffixTree<'a, T> {
 
 impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SuffixTree(txts: {:?})\n", self.txts)?;
+        writeln!(f, "SuffixTree(txts: {:?})", self.txts)?;
         let mut stack = Stack::new();
         let mut ident_stack = Stack::new();
         stack.push(&self.root);
@@ -481,16 +477,11 @@ impl<'a, T: Ord + Copy + fmt::Display + fmt::Debug> fmt::Display for SuffixTree<
             let ident = ident_stack.pop().unwrap();
             if !x.is_root() {
                 let spaces = String::from_iter(iter::repeat(' ').take(ident).collect::<Vec<char>>());
-                write!(
-                    f,
-                    "{}|<{}>",
-                    spaces,
-                    x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat()
-                )?;
+                write!(f, "{}|<{}>", spaces, x.data().iter().map(|c| c.to_string()).collect::<Vec<String>>().concat())?;
                 if x.terminates_any() {
                     writeln!(f, "*")?;
                 } else {
-                    writeln!(f, "")?;
+                    writeln!(f)?;
                 }
             }
             for node in x.iter_children() {

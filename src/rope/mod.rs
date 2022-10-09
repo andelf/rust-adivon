@@ -78,14 +78,14 @@ fn concatenate(left: Rope, right: Rope) -> Rope {
     Concatenation {
         left: Box::new(left),
         right: Box::new(right),
-        depth: depth,
-        length: length,
+        depth,
+        length,
     }
 }
 
 impl Rope {
     pub fn from_vec(seq: Vec<char>) -> Rope {
-        Rope::FlatCharVec { seq: seq }
+        Rope::FlatCharVec { seq }
     }
 
     pub fn len(&self) -> usize {
@@ -110,12 +110,6 @@ impl Rope {
 
     pub fn append<RHS: IntoRope>(self, rhs: RHS) -> Self {
         concatenate(self, rhs.into_rope())
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut s = String::new();
-        write_rope_to_string(self, &mut s);
-        s
     }
 
     pub fn reverse(self) -> Self {
@@ -258,7 +252,7 @@ impl Rope {
                 SubString { rope, offset, length } => {
                     assert!(end - start <= length);
                     SubString {
-                        rope: rope,
+                        rope,
                         offset: offset + start,
                         length: end - start,
                     }
@@ -342,7 +336,9 @@ impl ops::IndexMut<usize> for Rope {
 
 impl fmt::Display for Rope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        let mut s = String::new();
+        write_rope_to_string(self, &mut s);
+        write!(f, "{}", s)
     }
 }
 
@@ -435,10 +431,7 @@ fn test_rope_char_at() {
     // reverse
     let s = s.reverse().insert(30, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").delete(35, 40);
     for i in 0..s.len() {
-        assert_eq!(
-            s.to_string().chars().skip(i).next().unwrap(),
-            s.char_ref(i).map(|&c| c).unwrap()
-        );
+        assert_eq!(s.to_string().chars().skip(i).next().unwrap(), s.char_ref(i).map(|&c| c).unwrap());
     }
 }
 

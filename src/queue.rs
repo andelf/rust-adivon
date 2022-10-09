@@ -59,10 +59,13 @@ impl<T: Clone> Clone for Queue<T> {
             }
             p.map_or_else(Rawlink::none, |n| Rawlink::some(&mut **n))
         };
-        Queue {
-            first: first,
-            last: last,
-        }
+        Queue { first, last }
+    }
+}
+
+impl<T> Default for Queue<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -80,7 +83,7 @@ impl<T> Queue<T> {
 
     pub fn enqueue(&mut self, val: T) {
         let old_last = &self.last.take();
-        let mut last = Box::new(Node { val: val, next: None });
+        let mut last = Box::new(Node { val, next: None });
         self.last = Rawlink::some(&mut last);
         if self.is_empty() {
             self.first = Some(last)
@@ -90,9 +93,7 @@ impl<T> Queue<T> {
     }
 
     pub fn dequeue(&mut self) -> Option<T> {
-        if self.first.is_none() {
-            return None;
-        }
+        self.first.as_ref()?;
         let old_first = self.first.take();
         let (val, first) = old_first.unwrap().into_val_and_next();
         self.first = first;
@@ -145,7 +146,7 @@ pub struct Iter<'a, T>
 where
     T: 'a,
 {
-    node: Option<&'a Box<Node<T>>>,
+    node: Option<&'a Node<T>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -153,7 +154,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     fn next(&mut self) -> Option<&'a T> {
         let ret = self.node.map(|n| &n.val);
-        self.node = self.node.map_or(None, |n| n.next.as_ref());
+        self.node = self.node.and_then(|n| n.next.as_deref());
         ret
     }
 
@@ -162,7 +163,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
         let mut sz = 0;
         let mut p = self.node;
         while p.is_some() {
-            p = p.map_or(None, |n| n.next.as_ref());
+            p = p.and_then(|n| n.next.as_deref());
             sz += 1;
         }
         (sz, Some(sz))
@@ -178,7 +179,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 impl<T> Queue<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            node: self.first.as_ref(),
+            node: self.first.as_deref(),
         }
     }
 }

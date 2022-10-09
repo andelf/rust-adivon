@@ -44,6 +44,12 @@ pub struct Deque<T> {
     last: Rawlink<Node<T>>,
 }
 
+impl<T> Default for Deque<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Deque<T> {
     pub fn new() -> Deque<T> {
         Deque {
@@ -63,7 +69,7 @@ impl<T> Deque<T> {
     pub fn add_first(&mut self, item: T) {
         let mut old_first = self.first.take();
         let mut first = Box::new(Node {
-            item: item,
+            item,
             next: None,
             prev: Rawlink::none(),
         });
@@ -82,7 +88,7 @@ impl<T> Deque<T> {
         if self.first.is_some() {
             let old_last = self.last.take();
             let mut last = Box::new(Node {
-                item: item,
+                item,
                 next: None,
                 prev: Rawlink::none(),
             });
@@ -97,12 +103,14 @@ impl<T> Deque<T> {
 
     pub fn remove_first(&mut self) -> Option<T> {
         let old_first = self.first.take();
-        if old_first.is_some() {
+        if let Some(old_first) = old_first {
             let Node {
                 item, next: mut first, ..
-            } = *old_first.unwrap();
+            } = *old_first;
             // update new first's prev field
-            first.as_mut().map(|v| v.prev = Rawlink::none());
+            if let Some(v) = first.as_mut() {
+                v.prev = Rawlink::none();
+            }
             self.first = first;
             Some(item)
         } else {
@@ -148,7 +156,7 @@ impl<T> Deque<T> {
 impl<T> Deque<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            current: self.first.as_ref(),
+            current: self.first.as_deref(),
             nelem: self.len(),
         }
     }
@@ -214,7 +222,7 @@ impl<T> IntoIterator for Deque<T> {
 
 // TODO impl DoubleEndedIterator
 pub struct Iter<'a, T: 'a> {
-    current: Option<&'a Box<Node<T>>>,
+    current: Option<&'a Node<T>>,
     nelem: usize,
 }
 
@@ -227,7 +235,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
         }
         let old_current = self.current.take();
 
-        self.current = (**old_current.unwrap()).next.as_ref();
+        self.current = (*old_current.unwrap()).next.as_deref();
         self.nelem -= 1;
         Some(&old_current.as_ref().unwrap().item)
     }

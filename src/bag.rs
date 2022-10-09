@@ -29,10 +29,10 @@ impl<T: Clone> Clone for Bag<T> {
     }
 }
 
-fn write_node_to_formatter<T: fmt::Debug>(f: &mut fmt::Formatter, x: Option<&Box<Node<T>>>) -> fmt::Result {
+fn write_node_to_formatter<T: fmt::Debug>(f: &mut fmt::Formatter, x: Option<&Node<T>>) -> fmt::Result {
     if let Some(node) = x {
         write!(f, "{:?}, ", node.val)?;
-        write_node_to_formatter(f, node.next.as_ref())
+        write_node_to_formatter(f, node.next.as_deref())
     } else {
         Ok(())
     }
@@ -41,8 +41,14 @@ fn write_node_to_formatter<T: fmt::Debug>(f: &mut fmt::Formatter, x: Option<&Box
 impl<T: fmt::Debug> fmt::Debug for Bag<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
-        write_node_to_formatter(f, self.s.as_ref())?;
+        write_node_to_formatter(f, self.s.as_deref())?;
         write!(f, "]")
+    }
+}
+
+impl<T> Default for Bag<T> {
+    fn default() -> Self {
+        Bag::new()
     }
 }
 
@@ -53,7 +59,7 @@ impl<T> Bag<T> {
 
     pub fn add(&mut self, val: T) {
         let next = self.s.take();
-        self.s = Some(Box::new(Node { val: val, next: next }));
+        self.s = Some(Box::new(Node { val, next }));
         self.n += 1;
     }
 
@@ -70,7 +76,7 @@ pub struct Iter<'a, T>
 where
     T: 'a,
 {
-    node: Option<&'a Box<Node<T>>>,
+    node: Option<&'a Node<T>>,
     nitem: usize,
 }
 
@@ -82,7 +88,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
             None
         } else {
             let ret = self.node.map(|n| &n.val);
-            self.node = self.node.map_or(None, |n| n.next.as_ref());
+            self.node = self.node.and_then(|n| n.next.as_deref());
             self.nitem -= 1;
             ret
         }
@@ -103,7 +109,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T> {
 impl<T> Bag<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            node: self.s.as_ref(),
+            node: self.s.as_deref(),
             nitem: self.n,
         }
     }

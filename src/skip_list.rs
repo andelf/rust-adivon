@@ -1,5 +1,4 @@
 use std::fmt;
-use std::iter;
 use std::mem;
 use std::ptr;
 
@@ -50,6 +49,7 @@ pub struct SkipNode<Key, E> {
     next: Link<SkipNode<Key, E>>,
     // level 0 to DEFAULT_LEVEL
     forward: Vec<Rawlink<SkipNode<Key, E>>>,
+    #[allow(dead_code)]
     level: usize,
 }
 
@@ -57,11 +57,11 @@ impl<Key: PartialOrd, E> SkipNode<Key, E> {
     // level: 0 ~ DEFAULT_LEVEL
     fn new(key: Key, it: E, level: usize) -> SkipNode<Key, E> {
         SkipNode {
-            key: key,
-            it: it,
+            key,
+            it,
             next: None,
             forward: vec![Rawlink::none(); level],
-            level: level,
+            level,
         }
     }
 
@@ -85,6 +85,12 @@ pub struct SkipList<Key, E> {
     forward: Vec<Rawlink<SkipNode<Key, E>>>,
     level: usize,
     size: usize,
+}
+
+impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> Default for SkipList<Key, E> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<Key, E> {
@@ -134,8 +140,7 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
         x = x
             .resolve_mut()
             .map_or_else(Rawlink::none, |n| Rawlink::from(&mut n.next));
-        x.resolve()
-            .map_or(None, |n| if n.key == *key { Some(&n.it) } else { None })
+        x.resolve().and_then(|n| if n.key == *key { Some(&n.it) } else { None })
     }
 
     fn adjust_head(&mut self, new_level: usize) {
@@ -144,7 +149,9 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
 
         for _ in level..new_level {
             self.forward.push(head_link);
-            self.head.as_mut().map(|n| n.forward.push(Rawlink::none()));
+            if let Some(n) = self.head.as_mut() {
+                n.forward.push(Rawlink::none())
+            }
         }
         assert_eq!(self.forward.len(), new_level);
         assert_eq!(self.head.as_ref().map_or(new_level, |n| n.level()), new_level);
@@ -175,11 +182,15 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             let new_link = Rawlink::from(&mut new_node);
 
             for i in 0..new_level {
-                new_node.as_mut().map(|n| n.forward[i] = self.forward[i]);
+                if let Some(n) = new_node.as_mut() {
+                    n.forward[i] = self.forward[i];
+                }
                 self.forward[i] = new_link
             }
 
-            new_node.as_mut().map(|n| n.next = self.head.take());
+            if let Some(n) = new_node.as_mut() {
+                n.next = self.head.take();
+            }
             self.head = new_node;
             self.size += 1;
             None
@@ -227,9 +238,9 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             let new_link = Rawlink::from(&mut new_node);
 
             for (i, item) in update.iter_mut().enumerate().take(new_level) {
-                new_node.as_mut().map(|n| {
+                if let Some(n) = new_node.as_mut() {
                     n.forward[i] = item.resolve_mut().map_or_else(Rawlink::none, |nx| nx.forward[i]);
-                });
+                }
                 // if update is empty, then update head node's link
                 item.resolve_mut().map_or_else(
                     || {
@@ -242,28 +253,29 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             }
 
             // moves in
-            y.resolve_mut().map(|n| {
-                new_node.as_mut().map(|new| new.next = n.next.take());
+            if let Some(n) = y.resolve_mut() {
+                if let Some(new) = new_node.as_mut() {
+                    new.next = n.next.take();
+                }
                 n.next = new_node;
-            });
+            }
             self.size += 1;
             None
         }
     }
 
     pub fn remove(&mut self, key: &Key) -> Option<E> {
-        if self.head.is_none() {
-            return None;
-        }
+        self.head.as_ref()?;
         let level = self.level();
         let mut x = self.forward[level - 1];
 
         let mut update: Vec<Rawlink<SkipNode<Key, E>>> = self.forward[..level].to_vec();
 
         for i in (0..level).rev() {
-            while x.resolve().map_or(false, |n| {
-                n.forward[i].is_some() && n.forward[i].resolve().unwrap().key < *key
-            }) {
+            while x
+                .resolve()
+                .map_or(false, |n| n.forward[i].is_some() && n.forward[i].resolve().unwrap().key < *key)
+            {
                 x = x.resolve().map(|n| n.forward[i]).unwrap();
             }
             update[i] = x;
@@ -292,13 +304,15 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             self.forward = vec![Rawlink::from(&mut next); new_level];
             self.level = new_level;
 
-            next.as_mut().map(|n| n.promote_level(new_level, forward));
+            if let Some(n) = next.as_mut() {
+                n.promote_level(new_level, forward)
+            }
             self.head = next;
             self.size -= 1;
             Some(it)
         } else if x.is_some() {
             // to be deleted
-            let current = x.resolve_mut().map_or(None, |n| n.next.take());
+            let current = x.resolve_mut().and_then(|n| n.next.take());
             if current.as_ref().map_or(true, |n| n.key != *key) {
                 return None;
             }
@@ -306,10 +320,14 @@ impl<Key: PartialOrd + Ord + fmt::Debug + fmt::Display, E: fmt::Debug> SkipList<
             // destruct
             let SkipNode { it, next, forward, .. } = *current.unwrap();
             // move next in
-            x.resolve_mut().map(|n| n.next = next);
+            if let Some(n) = x.resolve_mut() {
+                n.next = next;
+            }
             // chain prev node and next node
             for (i, prev) in update.iter_mut().take(level).enumerate() {
-                prev.resolve_mut().map(|n| n.forward[i] = forward[i]);
+                if let Some(n) = prev.resolve_mut() {
+                    n.forward[i] = forward[i];
+                }
             }
             self.size -= 1;
             Some(it)
@@ -342,7 +360,7 @@ impl<Key: Ord + fmt::Display + fmt::Debug, E: fmt::Debug> fmt::Display for SkipL
         while x.is_some() {
             // FIXME: change to unwrap() at last format
             offset_map.insert(&x.as_ref().unwrap().key, offset);
-            let nx = x.as_ref().map_or(None, |n| n.next.as_ref());
+            let nx = x.as_ref().and_then(|n| n.next.as_ref());
             let label = x.as_ref().map_or_else(String::new, |n| format!("{}", n.key));
             if nx.is_none() {
                 writeln!(f, "{}", label)?;
@@ -365,12 +383,12 @@ impl<Key: Ord + fmt::Display + fmt::Debug, E: fmt::Debug> fmt::Display for SkipL
                     // fist item
                     write!(f, "{} ", label)?;
                 } else {
-                    write!(f, "{}> {} ", iter::repeat('.').take(padding).collect::<String>(), label)?;
+                    write!(f, "{}> {} ", ".".repeat(padding), label)?;
                 }
                 x = x.resolve().map_or_else(Rawlink::none, |n| n.forward[i]);
                 offset = lv0_pos + label.len() + 3;
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -439,10 +457,10 @@ fn quicktest_skip_list() {
         let mut xy = xs;
         xy.sort();
         xy.dedup();
-        list.len() == xy.len() &&
-            xy.iter().all(|k| list.contains_key(k)) &&
-            xy.iter().all(|k| list.remove(k).unwrap() == *k) &&
-            list.len() == 0
+        list.len() == xy.len()
+            && xy.iter().all(|k| list.contains_key(k))
+            && xy.iter().all(|k| list.remove(k).unwrap() == *k)
+            && list.len() == 0
     }
 
     quickcheck(prop as fn(Vec<isize>) -> bool);

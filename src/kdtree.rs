@@ -45,12 +45,12 @@ pub struct Node<K: Point, V> {
 impl<K: Point, V> Node<K, V> {
     pub fn new(key: K, val: V, depth: usize) -> Node<K, V> {
         Node {
-            key: key,
-            val: val,
+            key,
+            val,
             left: None,
             right: None,
             // depth use (depth % k)-th dimension
-            depth: depth,
+            depth,
         }
     }
 
@@ -148,9 +148,7 @@ fn delete_min<K: Point, V>(x: NodeCell<K, V>) -> (NodeCell<K, V>, NodeCell<K, V>
 }
 
 fn delete<K: Point, V>(x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
-    if x.is_none() {
-        return None;
-    }
+    x.as_ref()?;
 
     let mut x = x;
     let dim = x.as_ref().unwrap().depth % <K as Point>::dimension();
@@ -189,6 +187,12 @@ fn delete<K: Point, V>(x: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
 
 pub struct KdTree<K: Point, V> {
     pub root: NodeCell<K, V>,
+}
+
+impl<K: Point, V> Default for KdTree<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<K: Point, V> KdTree<K, V> {
@@ -253,17 +257,17 @@ impl<K: Point, V> KdTree<K, V> {
 
 impl<K: Point, V> KdTree<K, V> {
     pub fn keys(&self) -> ::std::vec::IntoIter<&K> {
-        fn inorder<'a, K: Point, V>(x: Option<&'a Box<Node<K, V>>>, queue: &mut Vec<&'a K>) {
+        fn inorder<'a, K: Point, V>(x: Option<&'a Node<K, V>>, queue: &mut Vec<&'a K>) {
             if x.is_none() {
                 return;
             }
-            inorder(x.unwrap().left.as_ref(), queue);
+            inorder(x.unwrap().left.as_deref(), queue);
             queue.push(&x.unwrap().key);
-            inorder(x.unwrap().right.as_ref(), queue);
-        };
+            inorder(x.unwrap().right.as_deref(), queue);
+        }
 
         let mut queue = Vec::new();
-        inorder(self.root.as_ref(), &mut queue);
+        inorder(self.root.as_deref(), &mut queue);
         queue.into_iter()
     }
 }

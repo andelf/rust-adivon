@@ -48,15 +48,15 @@ impl<K: PartialOrd, V> Node<K, V> {
         Node {
             left: None,
             right: None,
-            key: key,
-            val: val,
+            key,
+            val,
         }
     }
 
-    fn height(x: Option<&Box<Node<K, V>>>) -> usize {
+    fn height(x: Option<&Node<K, V>>) -> usize {
         if let Some(node) = x {
-            let lh = Node::height(node.left.as_ref());
-            let rh = Node::height(node.left.as_ref());
+            let lh = Node::height(node.left.as_deref());
+            let rh = Node::height(node.left.as_deref());
             if lh <= rh {
                 rh + 1
             } else {
@@ -67,101 +67,112 @@ impl<K: PartialOrd, V> Node<K, V> {
         }
     }
 
-    fn size(x: Option<&Box<Node<K, V>>>) -> usize {
+    fn size(x: Option<&Node<K, V>>) -> usize {
         if let Some(node) = x {
-            1 + Node::size(node.left.as_ref()) + Node::size(node.right.as_ref())
+            1 + Node::size(node.left.as_deref()) + Node::size(node.right.as_deref())
         } else {
             0
         }
     }
 
     fn splay(mut h: NodeCell<K, V>, key: &K) -> NodeCell<K, V> {
-        if h.is_none() {
-            return None;
-        }
+        h.as_ref()?;
         let cmp1 = h.as_ref().map(|n| compare(key, &n.key)).unwrap();
-
-        if cmp1 < 0 {
-            // key not in tree, done
-            if h.as_ref().unwrap().left.is_none() {
-                return h;
-            }
-            let cmp2 = compare(key, &h.as_ref().unwrap().left.as_ref().unwrap().key);
-            if cmp2 < 0 {
-                h.as_mut().map(|n| {
-                    n.left.as_mut().map(|n| {
-                        n.left = Node::splay(n.left.take(), key);
-                    })
-                });
-                h = Node::rotate_right(h);
-            } else if cmp2 > 0 {
-                // if let Some(ref mut n) = h.as_mut() {
-                //     if let Some(ref mut left) = n.left.as_mut() {
-                //         left.right = Node::splay(left.right.take(), key);
-                //         if left.right.is_some() {
-                //             n.left = Node::rotate_left(n.left.take())
-                //         }
-                //     }
-                // }
-                if let Some(ref mut n) = h.as_mut() {
-                    if n.left.as_mut().map_or(false, |n| {
-                        n.right = Node::splay(n.right.take(), key);
-                        n.right.is_some()
-                    }) {
-                        n.left = Node::rotate_left(n.left.take());
+        match cmp1.cmp(&0) {
+            cmp::Ordering::Less => {
+                // key not in tree, done
+                if h.as_ref().unwrap().left.is_none() {
+                    return h;
+                }
+                let cmp2 = compare(key, &h.as_ref().unwrap().left.as_ref().unwrap().key);
+                match cmp2.cmp(&0) {
+                    cmp::Ordering::Less => {
+                        h.as_mut().map(|n| {
+                            n.left.as_mut().map(|n| {
+                                n.left = Node::splay(n.left.take(), key);
+                            })
+                        });
+                        h = Node::rotate_right(h);
                     }
+                    cmp::Ordering::Greater => {
+                        if let Some(ref mut n) = h.as_mut() {
+                            let f = |n: &mut Box<Node<K, V>>| {
+                                n.right = Node::splay(n.right.take(), key);
+                                n.right.is_some()
+                            };
+                            if n.left.as_mut().map_or(false, f) {
+                                n.left = Node::rotate_left(n.left.take());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                // key not in tree
+                if h.as_ref().unwrap().left.is_none() {
+                    return h;
+                } else {
+                    return Node::rotate_right(h);
                 }
             }
-            // key not in tree
-            if h.as_ref().unwrap().left.is_none() {
-                return h;
-            } else {
-                return Node::rotate_right(h);
-            }
-        } else if cmp1 > 0 {
-            // key not in tree, done
-            if h.as_ref().unwrap().right.is_none() {
-                return h;
-            }
-            let cmp2 = compare(key, &h.as_ref().unwrap().right.as_ref().unwrap().key);
-            if cmp2 < 0 {
-                h.as_mut().map(|n| {
-                    if n.right.as_mut().map_or(false, |n| {
-                        n.left = Node::splay(n.left.take(), key);
-                        n.left.is_some()
-                    }) {
-                        n.right = Node::rotate_right(n.right.take());
+            cmp::Ordering::Greater => {
+                // key not in tree, done
+                if h.as_ref().unwrap().right.is_none() {
+                    return h;
+                }
+                let cmp2 = compare(key, &h.as_ref().unwrap().right.as_ref().unwrap().key);
+                match cmp2.cmp(&0) {
+                    cmp::Ordering::Less => {
+                        if let Some(n) = h.as_mut() {
+                            let f = |n: &mut Box<Node<K, V>>| {
+                                n.left = Node::splay(n.left.take(), key);
+                                n.left.is_some()
+                            };
+                            if n.right.as_mut().map_or(false, f) {
+                                n.right = Node::rotate_right(n.right.take());
+                            }
+                        }
                     }
-                });
-            } else if cmp2 > 0 {
-                h.as_mut().map(|n| {
-                    n.right.as_mut().map(|n| {
-                        n.right = Node::splay(n.right.take(), key);
-                    })
-                });
-                h = Node::rotate_left(h);
+                    cmp::Ordering::Greater => {
+                        h.as_mut().map(|n| {
+                            n.right.as_mut().map(|n| {
+                                n.right = Node::splay(n.right.take(), key);
+                            })
+                        });
+                        h = Node::rotate_left(h);
+                    }
+                    _ => {}
+                }
+                // key not in tree
+                if h.as_ref().unwrap().right.is_none() {
+                    return h;
+                } else {
+                    return Node::rotate_left(h);
+                }
             }
-            // key not in tree
-            if h.as_ref().unwrap().right.is_none() {
-                return h;
-            } else {
-                return Node::rotate_left(h);
-            }
+            _ => {}
         }
         h
     }
 
     fn rotate_right(mut h: NodeCell<K, V>) -> NodeCell<K, V> {
-        let mut x = h.as_mut().map_or(None, |n| n.left.take());
-        h.as_mut().map(|n| n.left = x.as_mut().map_or(None, |n| n.right.take()));
-        x.as_mut().map(|n| n.right = h);
+        let mut x = h.as_mut().and_then(|n| n.left.take());
+        if let Some(n) = h.as_mut() {
+            n.left = x.as_mut().and_then(|n| n.right.take());
+        }
+        if let Some(n) = x.as_mut() {
+            n.right = h;
+        }
         x
     }
 
     fn rotate_left(mut h: NodeCell<K, V>) -> NodeCell<K, V> {
-        let mut x = h.as_mut().map_or(None, |n| n.right.take());
-        h.as_mut().map(|n| n.right = x.as_mut().map_or(None, |n| n.left.take()));
-        x.as_mut().map(|n| n.left = h);
+        let mut x = h.as_mut().and_then(|n| n.right.take());
+        if let Some(n) = h.as_mut() {
+            n.right = x.as_mut().and_then(|n| n.left.take());
+        }
+        if let Some(n) = x.as_mut() {
+            n.left = h;
+        }
         x
     }
 }
@@ -183,6 +194,12 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for SplayTree<K, V> {
     }
 }
 
+impl<K: PartialOrd, V> Default for SplayTree<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K: PartialOrd, V> SplayTree<K, V> {
     pub fn new() -> SplayTree<K, V> {
         SplayTree {
@@ -196,11 +213,11 @@ impl<K: PartialOrd, V> SplayTree<K, V> {
     }
 
     pub fn size(&self) -> usize {
-        Node::size(self.root.as_ref())
+        Node::size(self.root.as_deref())
     }
 
     pub fn height(&self) -> usize {
-        Node::height(self.root.as_ref())
+        Node::height(self.root.as_deref())
     }
 
     pub fn clear(&mut self) {
@@ -212,7 +229,7 @@ impl<K: PartialOrd, V> SplayTree<K, V> {
         self.root = Node::splay(self.root.take(), key);
         self.root
             .as_ref()
-            .map_or(None, |n| if n.key == *key { Some(&n.val) } else { None })
+            .and_then(|n| if n.key == *key { Some(&n.val) } else { None })
     }
 
     pub fn contains_key(&mut self, key: &K) -> bool {
@@ -223,7 +240,7 @@ impl<K: PartialOrd, V> SplayTree<K, V> {
         self.root = Node::splay(self.root.take(), key);
         self.root
             .as_mut()
-            .map_or(None, |n| if n.key == *key { Some(&mut n.val) } else { None })
+            .and_then(|n| if n.key == *key { Some(&mut n.val) } else { None })
     }
 
     /// Splay tree insertion.
@@ -236,30 +253,32 @@ impl<K: PartialOrd, V> SplayTree<K, V> {
         let mut root = Node::splay(self.root.take(), &key);
 
         let cmp = compare(&key, &root.as_ref().unwrap().key);
-        if cmp < 0 {
-            let mut n = Node::new(key, val);
-            n.left = root.as_mut().unwrap().left.take();
-            n.right = root;
-            self.root = Some(Box::new(n));
-        } else if cmp > 0 {
-            let mut n = Node::new(key, val);
-            n.right = root.as_mut().unwrap().right.take();
-            n.left = root;
-            self.root = Some(Box::new(n));
-        } else if cmp == 0 {
-            root.as_mut().map(|n| n.val = val);
-            self.root = root;
-        } else {
-            unreachable!();
+        match cmp.cmp(&0) {
+            std::cmp::Ordering::Less => {
+                let mut n = Node::new(key, val);
+                n.left = root.as_mut().unwrap().left.take();
+                n.right = root;
+                self.root = Some(Box::new(n));
+            }
+            std::cmp::Ordering::Greater => {
+                let mut n = Node::new(key, val);
+                n.right = root.as_mut().unwrap().right.take();
+                n.left = root;
+                self.root = Some(Box::new(n));
+            }
+            std::cmp::Ordering::Equal => {
+                if let Some(n) = root.as_mut() {
+                    n.val = val;
+                }
+                self.root = root;
+            }
         }
     }
 
     /// Splay tree deletion.
     // use Algs4 approach
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        if self.root.is_none() {
-            return None;
-        }
+        self.root.as_ref()?;
 
         let mut root = Node::splay(self.root.take(), key);
 
@@ -269,7 +288,9 @@ impl<K: PartialOrd, V> SplayTree<K, V> {
             } else {
                 let x = root.as_mut().unwrap().right.take();
                 self.root = Node::splay(root.as_mut().unwrap().left.take(), key);
-                self.root.as_mut().map(|n| n.right = x);
+                if let Some(n) = self.root.as_mut() {
+                    n.right = x;
+                }
             }
             root.map(|n| n.val)
         } else {
