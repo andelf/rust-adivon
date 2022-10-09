@@ -39,11 +39,17 @@ pub struct HashST<K, V> {
     st: Vec<Option<Box<Node<K, V>>>>,
 }
 
+impl<K: Hash + PartialEq, V> Default for HashST<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K: Hash + PartialEq, V> HashST<K, V> {
     pub fn new() -> HashST<K, V> {
         let mut st = Vec::with_capacity(M);
         (0..M).map(|_| st.push(None)).count();
-        HashST { st: st }
+        HashST { st }
     }
 
     // FIXME: hash state bug
@@ -93,11 +99,7 @@ impl<K: Hash + PartialEq, V> HashST<K, V> {
             }
         }
         let old = self.st[i].take();
-        self.st[i] = Some(Box::new(Node {
-            key: key,
-            val: val,
-            next: old,
-        }))
+        self.st[i] = Some(Box::new(Node { key, val, next: old }))
     }
 
     pub fn delete(&mut self, key: &K) {

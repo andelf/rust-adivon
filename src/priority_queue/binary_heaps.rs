@@ -12,7 +12,7 @@ impl<Key: PartialOrd> MaxPQ<Key> {
         for _ in 0..capacity + 1 {
             pq.push(None);
         }
-        MaxPQ { pq: pq, n: 0 }
+        MaxPQ { pq, n: 0 }
     }
 
     fn resize(&mut self, capacity: usize) {
@@ -49,6 +49,12 @@ impl<Key: PartialOrd> MaxPQ<Key> {
             self.pq.swap(k, j);
             k = j;
         }
+    }
+}
+
+impl<Key: PartialOrd> Default for MaxPQ<Key> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -122,7 +128,7 @@ impl<Key: PartialOrd> MinPQ<Key> {
         for _ in 0..capacity + 1 {
             pq.push(None);
         }
-        MinPQ { pq: pq, n: 0 }
+        MinPQ { pq, n: 0 }
     }
 
     fn resize(&mut self, capacity: usize) {
@@ -159,6 +165,12 @@ impl<Key: PartialOrd> MinPQ<Key> {
             self.pq.swap(k, j);
             k = j;
         }
+    }
+}
+
+impl<Key: PartialOrd> Default for MinPQ<Key> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

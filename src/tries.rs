@@ -11,7 +11,7 @@ pub struct Node<V, K: Copy + PartialOrd = char> {
 impl<K: PartialOrd + Copy, V> Node<V, K> {
     fn new(c: K) -> Node<V, K> {
         Node {
-            c: c,
+            c,
             left: None,
             mid: None,
             right: None,
@@ -37,44 +37,48 @@ impl<K: PartialOrd + Copy, V> Node<V, K> {
         let xc = x.as_ref().unwrap().c;
         if c < xc {
             let (left, repl) = Node::put(x.as_mut().unwrap().left.take(), key, val, d);
-            x.as_mut().map(|n| n.left = left);
+            if let Some(n) = x.as_mut() {
+                n.left = left;
+            }
             replaced = repl;
         } else if c > xc {
             let (right, repl) = Node::put(x.as_mut().unwrap().right.take(), key, val, d);
-            x.as_mut().map(|n| n.right = right);
+            if let Some(n) = x.as_mut() {
+                n.right = right;
+            }
             replaced = repl;
         } else if d < key.len() - 1 {
             let (mid, repl) = Node::put(x.as_mut().unwrap().mid.take(), key, val, d + 1);
-            x.as_mut().map(|n| n.mid = mid);
+            if let Some(n) = x.as_mut() {
+                n.mid = mid;
+            }
             replaced = repl;
         } else {
             replaced = x.as_mut().unwrap().val.take();
-            x.as_mut().map(|n| n.val = val);
+            if let Some(n) = x.as_mut() {
+                n.val = val;
+            }
         }
         (x, replaced)
     }
 
-    fn get<'a>(x: Option<&'a Box<Node<V, K>>>, key: &[K], d: usize) -> Option<&'a Box<Node<V, K>>> {
-        if x.is_none() {
-            return None;
-        }
+    fn get<'a>(x: Option<&'a Node<V, K>>, key: &[K], d: usize) -> Option<&'a Node<V, K>> {
+        x?;
         let c = key[d];
         let xc = x.unwrap().c;
         if c < xc {
-            Node::get(x.unwrap().left.as_ref(), key, d)
+            Node::get(x.unwrap().left.as_deref(), key, d)
         } else if c > xc {
-            Node::get(x.unwrap().right.as_ref(), key, d)
+            Node::get(x.unwrap().right.as_deref(), key, d)
         } else if d < key.len() - 1 {
-            Node::get(x.unwrap().mid.as_ref(), key, d + 1)
+            Node::get(x.unwrap().mid.as_deref(), key, d + 1)
         } else {
             x
         }
     }
 
     fn get_mut<'a>(x: Option<&'a mut Box<Node<V, K>>>, key: &[K], d: usize) -> Option<&'a mut Box<Node<V, K>>> {
-        if x.is_none() {
-            return None;
-        }
+        x.as_ref()?;
         let c = key[d];
         let xc = x.as_ref().unwrap().c;
         if c < xc {
@@ -88,37 +92,37 @@ impl<K: PartialOrd + Copy, V> Node<V, K> {
         }
     }
 
-    fn collect(x: Option<&Box<Node<V, K>>>, mut prefix: Vec<K>, queue: &mut Queue<Vec<K>>) {
+    fn collect(x: Option<&Node<V, K>>, mut prefix: Vec<K>, queue: &mut Queue<Vec<K>>) {
         if x.is_none() {
             return;
         }
-        Node::collect(x.unwrap().left.as_ref(), prefix.clone(), queue);
+        Node::collect(x.unwrap().left.as_deref(), prefix.clone(), queue);
         let xc = x.unwrap().c;
         prefix.push(xc);
         if x.unwrap().val.is_some() {
             queue.enqueue(prefix.clone());
         }
-        Node::collect(x.unwrap().mid.as_ref(), prefix.clone(), queue);
+        Node::collect(x.unwrap().mid.as_deref(), prefix.clone(), queue);
         prefix.pop();
-        Node::collect(x.unwrap().right.as_ref(), prefix, queue);
+        Node::collect(x.unwrap().right.as_deref(), prefix, queue);
     }
 
-    fn longest_prefix_of<'a>(mut x: Option<&Box<Node<V, K>>>, query: &'a [K]) -> Option<&'a [K]> {
+    fn longest_prefix_of<'a>(mut x: Option<&Node<V, K>>, query: &'a [K]) -> Option<&'a [K]> {
         let mut length = 0;
         let mut i = 0;
         while x.is_some() && i < query.len() {
             let c = query[i];
             let xc = x.unwrap().c;
             if c < xc {
-                x = x.unwrap().left.as_ref();
+                x = x.unwrap().left.as_deref();
             } else if c > xc {
-                x = x.unwrap().right.as_ref();
+                x = x.unwrap().right.as_deref();
             } else {
                 i += 1;
                 if x.unwrap().val.is_some() {
                     length = i;
                 }
-                x = x.unwrap().mid.as_ref();
+                x = x.unwrap().mid.as_deref();
             }
         }
         if length == 0 {
@@ -133,6 +137,12 @@ impl<K: PartialOrd + Copy, V> Node<V, K> {
 pub struct TernarySearchTrie<V, K: PartialOrd + Copy = char> {
     root: Option<Box<Node<V, K>>>,
     n: usize,
+}
+
+impl<K: PartialOrd + Copy, V> Default for TernarySearchTrie<V, K> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K> {
@@ -150,13 +160,13 @@ impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K> {
     }
 
     pub fn get(&self, key: &[K]) -> Option<&V> {
-        assert!(key.len() > 0, "key must have length >= 1");
-        Node::get(self.root.as_ref(), key, 0).map_or(None, |n| n.val.as_ref())
+        assert!(!key.is_empty(), "key must have length >= 1");
+        Node::get(self.root.as_deref(), key, 0).and_then(|n| n.val.as_ref())
     }
 
     pub fn get_mut(&mut self, key: &[K]) -> Option<&mut V> {
-        assert!(key.len() > 0, "key must have length >= 1");
-        Node::get_mut(self.root.as_mut(), key, 0).map_or(None, |n| n.val.as_mut())
+        assert!(!key.is_empty(), "key must have length >= 1");
+        Node::get_mut(self.root.as_mut(), key, 0).and_then(|n| n.val.as_mut())
     }
 
     pub fn delete(&mut self, key: &[K]) {
@@ -181,24 +191,24 @@ impl<K: PartialOrd + Copy, V> TernarySearchTrie<V, K> {
     }
 
     pub fn longest_prefix_of<'a>(&self, query: &'a [K]) -> Option<&'a [K]> {
-        Node::longest_prefix_of(self.root.as_ref(), query)
+        Node::longest_prefix_of(self.root.as_deref(), query)
     }
 
     pub fn keys_with_prefix(&self, prefix: &[K]) -> Vec<Vec<K>> {
         let mut queue = Queue::new();
-        let x = Node::get(self.root.as_ref(), prefix, 0);
-        if x.is_some() {
-            if x.unwrap().val.is_some() {
+        let x = Node::get(self.root.as_deref(), prefix, 0);
+        if let Some(x) = x {
+            if x.val.is_some() {
                 queue.enqueue(prefix.into());
             }
-            Node::collect(x.unwrap().mid.as_ref(), prefix.into(), &mut queue);
+            Node::collect(x.mid.as_deref(), prefix.into(), &mut queue);
         }
         queue.into_iter().collect()
     }
 
     pub fn keys(&self) -> Vec<Vec<K>> {
         let mut queue = Queue::new();
-        Node::collect(self.root.as_ref(), vec![], &mut queue);
+        Node::collect(self.root.as_deref(), vec![], &mut queue);
         queue.into_iter().collect()
     }
 }

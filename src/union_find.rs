@@ -42,13 +42,17 @@ impl UnionFind {
         if i == j {
             return;
         }
-        if self.rank[i] < self.rank[j] {
-            self.id[i] = j;
-        } else if self.rank[i] > self.rank[j] {
-            self.id[j] = i;
-        } else {
-            self.id[j] = i;
-            self.rank[i] += 1;
+        match self.rank[i].cmp(&self.rank[j]) {
+            std::cmp::Ordering::Less => {
+                self.id[i] = j;
+            }
+            std::cmp::Ordering::Greater => {
+                self.id[j] = i;
+            }
+            std::cmp::Ordering::Equal => {
+                self.id[j] = i;
+                self.rank[i] += 1;
+            }
         }
         self.count -= 1;
     }

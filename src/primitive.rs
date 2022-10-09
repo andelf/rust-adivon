@@ -14,7 +14,7 @@ pub struct Point2D {
 
 impl Point2D {
     pub fn new(x: f64, y: f64) -> Point2D {
-        Point2D { x: x, y: y }
+        Point2D { x, y }
     }
 
     pub fn distance_to<T: Borrow<Point2D>>(&self, that: T) -> f64 {
@@ -62,12 +62,7 @@ pub struct RectHV {
 
 impl RectHV {
     pub fn new(xmin: f64, ymin: f64, xmax: f64, ymax: f64) -> RectHV {
-        RectHV {
-            xmin: xmin,
-            ymin: ymin,
-            xmax: xmax,
-            ymax: ymax,
-        }
+        RectHV { xmin, ymin, xmax, ymax }
     }
 
     pub fn width(&self) -> f64 {

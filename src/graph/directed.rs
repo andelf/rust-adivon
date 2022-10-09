@@ -14,7 +14,7 @@ pub struct Digraph {
 impl Digraph {
     pub fn new(v: usize) -> Digraph {
         Digraph {
-            v: v,
+            v,
             e: 0,
             adj: iter::repeat(Bag::<usize>::new()).take(v).collect(),
         }
@@ -86,11 +86,7 @@ impl Digraph {
                 adj[e].add(s);
             }
         }
-        Digraph {
-            v: v,
-            e: self.e,
-            adj: adj,
-        }
+        Digraph { v, e: self.e, adj }
     }
 
     pub fn dfs(&self, s: usize) -> SearchPaths {
@@ -159,10 +155,10 @@ impl<'a> SearchPaths<'a> {
         }
 
         SearchPaths {
-            graph: graph,
-            marked: marked,
-            edge_to: edge_to,
-            source: source,
+            graph,
+            marked,
+            edge_to,
+            source,
         }
     }
 
@@ -229,8 +225,8 @@ impl<'a> DepthFirstOrder<'a> {
     fn new(graph: &Digraph) -> DepthFirstOrder {
         let marked = iter::repeat(false).take(graph.v()).collect();
         DepthFirstOrder {
-            graph: graph,
-            marked: marked,
+            graph,
+            marked,
             reverse_post: Stack::new(),
         }
     }
@@ -267,7 +263,7 @@ impl<'a> KosarajuSharirSCC<'a> {
     fn new(graph: &Digraph) -> KosarajuSharirSCC {
         let n = graph.v();
         let mut cc = KosarajuSharirSCC {
-            graph: graph,
+            graph,
             marked: iter::repeat(false).take(n).collect(),
             id: iter::repeat(None).take(n).collect(),
             count: 0,
@@ -346,10 +342,7 @@ fn test_digraph_visit() {
     assert_eq!(format!("{:?}", g.bfs(0).path_to(3).unwrap()), "[0, 5, 4, 3]");
 
     // FIXME: bad test case
-    assert_eq!(
-        format!("{:?}", g.dfs_multi_source(vec![0, 4]).path_to(3).unwrap()),
-        "[4, 2, 3]"
-    );
+    assert_eq!(format!("{:?}", g.dfs_multi_source(vec![0, 4]).path_to(3).unwrap()), "[4, 2, 3]");
 
     let scc = g.kosaraju_sharir_scc();
 

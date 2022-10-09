@@ -16,11 +16,11 @@ impl<T: PartialOrd> IndexMinPQ<T> {
             keys.push(None);
         }
         IndexMinPQ {
-            nmax: nmax,
+            nmax,
             n: 0,
             pq: iter::repeat(0).take(nmax + 1).collect(),
             qp: iter::repeat(usize::MAX).take(nmax + 1).collect(),
-            keys: keys,
+            keys,
         }
     }
 
